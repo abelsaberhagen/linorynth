@@ -207,6 +207,61 @@
     display: none;
   }
   canvas { display: block; touch-action: none; }
+
+  /* --- Figma Screen Components --- */
+  .brand-small {
+    display: block; font-size: 11px; letter-spacing: 3px;
+    text-transform: uppercase; font-weight: bold;
+    text-align: center; opacity: 0.65; margin-bottom: 2px;
+  }
+  .logo-large {
+    font-size: 34px; font-weight: bold; letter-spacing: 3px;
+    text-transform: uppercase; font-family: 'Georgia', serif;
+    line-height: 1; text-align: center;
+  }
+  .welcome-h {
+    font-size: 22px; font-weight: bold; letter-spacing: 3px;
+    text-transform: uppercase; margin-top: 8px; text-align: center;
+  }
+  .lang-option-btn {
+    background: none; border: none;
+    border-bottom: 1.5px solid rgba(28,53,94,0.25);
+    font-family: 'Georgia', serif; font-size: 18px;
+    color: #1C355E; cursor: pointer; padding: 12px 0;
+    width: 180px; text-align: center; display: block;
+  }
+  .position-label {
+    font-size: 12px; letter-spacing: 2.5px; text-transform: uppercase;
+    font-weight: bold; opacity: 0.72; text-align: center; margin: 5px 0;
+  }
+  .steps-container { width: 100%; display: flex; flex-direction: column; margin-top: 6px; }
+  .step-row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 11px 0; border-bottom: 1px solid rgba(28,53,94,0.12); width: 100%;
+  }
+  .step-icon-wrap {
+    width: 46px; height: 46px; background: rgba(255,255,255,0.4);
+    border-radius: 10px; display: flex; align-items: center;
+    justify-content: center; flex-shrink: 0;
+  }
+  .step-num-label {
+    font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: rgba(28,53,94,0.5); display: block; line-height: 1.3;
+  }
+  .step-action-label {
+    font-size: 14px; font-weight: bold; color: #1C355E;
+    letter-spacing: 0.3px; display: block; line-height: 1.3;
+  }
+  .instructions-nav {
+    display: flex; justify-content: space-between; align-items: center;
+    width: 100%; margin-bottom: 6px;
+  }
+  .menu-icon-btn {
+    background: #FCB075; border: none; width: 32px; height: 32px;
+    border-radius: 7px; cursor: pointer; display: flex; flex-direction: column;
+    justify-content: center; align-items: center; gap: 4px; padding: 0;
+  }
+  .menu-icon-btn span { display: block; width: 16px; height: 2px; background: #1C355E; border-radius: 1px; }
 </style>
 </head>
 <body>
@@ -214,90 +269,235 @@
 <div id="app-frame">
   <div class="device-notch"></div>
 
+  <!-- Screen 1: Language Selection -->
   <div id="scr-lang" class="wireframe-screen">
-    <div style="margin-top: 30px;">
-      <div style="margin-bottom: 10px;">
-        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#1C355E" stroke-width="1.5">
-          <path d="m5 8 6 6 6-6M4 14h16M7 18h10" stroke-linecap="round" stroke-linejoin="round"/>
+    <div style="width:100%;text-align:center;margin-top:8px">
+      <span class="brand-small">LINORINTH</span>
+      <div class="logo-large">LINORINTH</div>
+      <p style="font-size:16px;margin-top:14px">Select your language</p>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+      <button class="lang-option-btn" onclick="showWelcomeScreen()">English</button>
+      <button class="lang-option-btn" onclick="showWelcomeScreen()">Greek</button>
+    </div>
+    <div style="width:100%">
+      <div class="graphic-container" style="margin-bottom:10px">
+        <svg width="100%" height="100%" viewBox="0 0 300 125" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="52" cy="63" r="36" stroke="#1C355E" stroke-width="1" fill="none" opacity="0.08" stroke-dasharray="7 5"/>
+          <circle cx="248" cy="63" r="36" stroke="#1C355E" stroke-width="1" fill="none" opacity="0.08" stroke-dasharray="7 5"/>
+          <g fill="#1C355E" stroke="#1C355E" stroke-linecap="round">
+            <circle cx="50" cy="30" r="11"/>
+            <line x1="50" y1="41" x2="50" y2="70" stroke-width="3.5"/>
+            <line x1="32" y1="53" x2="70" y2="51" stroke-width="3"/>
+            <line x1="70" y1="51" x2="82" y2="38" stroke-width="3"/>
+            <line x1="82" y1="38" x2="95" y2="18" stroke-width="3.5"/>
+            <line x1="88" y1="26" x2="99" y2="32" stroke-width="2.5"/>
+            <line x1="50" y1="70" x2="38" y2="96" stroke-width="3"/>
+            <line x1="50" y1="70" x2="62" y2="96" stroke-width="3"/>
+          </g>
+          <g stroke="#1C355E" stroke-linecap="round" stroke-width="4">
+            <line x1="124" y1="25" x2="176" y2="100"/>
+            <line x1="176" y1="25" x2="124" y2="100"/>
+          </g>
+          <g fill="#1C355E" stroke="#1C355E" stroke-linecap="round">
+            <circle cx="250" cy="30" r="11"/>
+            <line x1="242" y1="21" x2="232" y2="6" stroke-width="3"/>
+            <line x1="258" y1="21" x2="268" y2="6" stroke-width="3"/>
+            <rect x="237" y="41" width="26" height="22" rx="3" fill="#1C355E" stroke="none"/>
+            <line x1="218" y1="52" x2="237" y2="52" stroke-width="3"/>
+            <line x1="263" y1="52" x2="282" y2="52" stroke-width="3"/>
+            <line x1="244" y1="63" x2="232" y2="90" stroke-width="3"/>
+            <line x1="256" y1="63" x2="268" y2="90" stroke-width="3"/>
+          </g>
         </svg>
       </div>
-      <h1>Select Your<br>Language</h1>
+      <div class="url-address-bar">🔍 www.knossosvirtualqueue.com</div>
     </div>
-
-    <div class="select-wrapper">
-      <select id="langDropdown">
-        <option value="en">English</option>
-        <option value="gr">Greek</option>
-        <option value="es">Spanish</option>
-        <option value="ar">Arabic</option>
-      </select>
-    </div>
-
-    <button class="btn-action" onclick="showQueueScreen()">Done</button>
-    <div class="url-address-bar">🔍 www.knossosvirtualqueue.com</div>
   </div>
 
-  <div id="scr-queue" class="wireframe-screen hidden">
-    <div>
-      <span class="label-tag">Join Virtual Queue</span>
-      <h1>Position In Line</h1>
-      <div class="number-badge" id="lbl-queue-val">35</div>
-    </div>
-
-    <p class="body-desc">
-      Join the Linorinth game to skip the wait completely by slaying the minotaur!
-    </p>
-
-    <button class="btn-action" onclick="showRulesScreen()">Play Now</button>
-
-    <div class="graphic-container">
-      <svg width="100%" height="100%" viewBox="0 0 320 125" xmlns="http://www.w3.org/2000/svg">
-        <g opacity="0.12">
-          <circle cx="55" cy="62" r="45" stroke="#1C355E" stroke-width="1.5" fill="none" stroke-dasharray="12 6 4 6"/>
-          <circle cx="55" cy="62" r="32" stroke="#1C355E" stroke-width="1.5" fill="none" stroke-dasharray="20 8"/>
-          <circle cx="265" cy="62" r="45" stroke="#1C355E" stroke-width="1.5" fill="none" stroke-dasharray="12 6 4 6"/>
-          <circle cx="265" cy="62" r="32" stroke="#1C355E" stroke-width="1.5" fill="none" stroke-dasharray="20 8"/>
-        </g>
-        
-        <path d="M 12 25 L 28 25 L 28 45 L 20 45 L 20 35 L 24 35 M 12 55 L 28 55 L 28 75 L 20 75 L 20 65 L 24 65 M 12 85 L 28 85 L 28 105 L 20 105 L 20 95 L 24 95" fill="none" stroke="#1C355E" stroke-width="2" stroke-linecap="square" opacity="0.4"/>
-        
-        <path d="M 308 25 L 292 25 L 292 45 L 300 45 L 300 35 L 296 35 M 308 55 L 292 55 L 292 75 L 300 75 L 300 65 L 296 65 M 308 85 L 292 85 L 292 105 L 300 105 L 300 95 L 296 95" fill="none" stroke="#1C355E" stroke-width="2" stroke-linecap="square" opacity="0.4"/>
-
-        <path d="M 115 25 L 205 100 M 120 22 L 112 30" stroke="#1C355E" stroke-width="3.5" stroke-linecap="round"/>
-        <path d="M 205 25 L 115 100 M 200 22 L 208 30" stroke="#1C355E" stroke-width="3.5" stroke-linecap="round"/>
-        
-        <circle cx="160" cy="62" r="36" fill="#FCB075" stroke="#1C355E" stroke-width="3"/>
-        <circle cx="160" cy="62" r="30" fill="none" stroke="#1C355E" stroke-width="1" stroke-dasharray="4 3" opacity="0.6"/>
-
-        <g transform="translate(141, 46)">
-          <path d="M 13 14 L 19 14 L 22 23 L 16 30 L 10 23 Z" fill="#1C355E"/>
-          <path d="M 13 14 L 6 11 L 10 16 Z M 19 14 L 26 11 L 22 16 Z" fill="#1C355E"/>
-          <path d="M 11 14 C 6 10, 4 -1, 12 1 C 8 3, 9 9, 13 14 Z" fill="#1C355E"/>
-          <path d="M 21 14 C 26 10, 28 -1, 20 1 C 24 3, 23 9, 19 14 Z" fill="#1C355E"/>
-          <circle cx="14.5" cy="18" r="1" fill="#FCB075"/>
-          <circle cx="17.5" cy="18" r="1" fill="#FCB075"/>
-        </g>
-      </svg>
-    </div>
-
-    <div class="url-address-bar">🔍 www.knossosvirtualqueue.com</div>
-  </div>
-
-  <div id="scr-rules" class="wireframe-screen hidden">
-    <h1>Linorinth</h1>
-
-    <div class="card-container">
-      <div class="label-tag" style="margin-bottom: 8px;">Your Task:</div>
-      <p class="body-desc">
-        A mythical minotaur resides within the labyrinth palace.<br><br>Find the monster, navigate your path carefully, and escape safely to secure your priority immediate admission ticket!
+  <!-- Screen 2: Welcome / Info Page -->
+  <div id="scr-welcome" class="wireframe-screen hidden">
+    <div style="width:100%;text-align:center;margin-top:8px">
+      <span class="brand-small">LINORINTH</span>
+      <div class="logo-large">LINORINTH</div>
+      <p class="welcome-h">WELCOME</p>
+      <p class="body-desc" style="margin-top:12px">
+        Welcome to Knossos's Virtual Admission Line! From here, you can join a digital queue and explore the area while you wait instead of standing in a physical line.
       </p>
     </div>
+    <button class="btn-action" onclick="showJoinQueueScreen()">BEGIN</button>
+    <div style="width:100%">
+      <div class="graphic-container" style="margin-bottom:10px">
+        <svg width="100%" height="100%" viewBox="0 0 300 125" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="52" cy="63" r="36" stroke="#1C355E" stroke-width="1" fill="none" opacity="0.08" stroke-dasharray="7 5"/>
+          <circle cx="248" cy="63" r="36" stroke="#1C355E" stroke-width="1" fill="none" opacity="0.08" stroke-dasharray="7 5"/>
+          <g fill="#1C355E" stroke="#1C355E" stroke-linecap="round">
+            <circle cx="50" cy="30" r="11"/>
+            <line x1="50" y1="41" x2="50" y2="70" stroke-width="3.5"/>
+            <line x1="32" y1="53" x2="70" y2="51" stroke-width="3"/>
+            <line x1="70" y1="51" x2="82" y2="38" stroke-width="3"/>
+            <line x1="82" y1="38" x2="95" y2="18" stroke-width="3.5"/>
+            <line x1="88" y1="26" x2="99" y2="32" stroke-width="2.5"/>
+            <line x1="50" y1="70" x2="38" y2="96" stroke-width="3"/>
+            <line x1="50" y1="70" x2="62" y2="96" stroke-width="3"/>
+          </g>
+          <g stroke="#1C355E" stroke-linecap="round" stroke-width="4">
+            <line x1="124" y1="25" x2="176" y2="100"/>
+            <line x1="176" y1="25" x2="124" y2="100"/>
+          </g>
+          <g fill="#1C355E" stroke="#1C355E" stroke-linecap="round">
+            <circle cx="250" cy="30" r="11"/>
+            <line x1="242" y1="21" x2="232" y2="6" stroke-width="3"/>
+            <line x1="258" y1="21" x2="268" y2="6" stroke-width="3"/>
+            <rect x="237" y="41" width="26" height="22" rx="3" fill="#1C355E" stroke="none"/>
+            <line x1="218" y1="52" x2="237" y2="52" stroke-width="3"/>
+            <line x1="263" y1="52" x2="282" y2="52" stroke-width="3"/>
+            <line x1="244" y1="63" x2="232" y2="90" stroke-width="3"/>
+            <line x1="256" y1="63" x2="268" y2="90" stroke-width="3"/>
+          </g>
+        </svg>
+      </div>
+      <div class="url-address-bar">🔍 www.knossosvirtualqueue.com</div>
+    </div>
+  </div>
 
-    <div style="width: 100%; display: flex; flex-direction: column; align-items: center; gap: 6px;">
-      <button class="btn-action" onclick="triggerLiveGame()">Begin Challenge</button>
+  <!-- Screen 3: Join Virtual Queue -->
+  <div id="scr-queue" class="wireframe-screen hidden">
+    <div style="width:100%;text-align:center;margin-top:8px">
+      <span class="brand-small">LINORINTH</span>
+      <div class="logo-large">LINORINTH</div>
+      <h1 style="margin-top:18px;line-height:1.2">Join Virtual<br>Queue</h1>
+    </div>
+    <div style="width:100%;display:flex;flex-direction:column;align-items:center;gap:8px">
+      <button class="btn-action" onclick="showQueuePosScreen()">JOIN LINE</button>
       <button class="btn-text-link" onclick="fallbackToStart()">Not right now</button>
     </div>
-    <div class="url-address-bar">🔍 www.knossosvirtualqueue.com</div>
+    <div style="width:100%">
+      <div class="graphic-container" style="margin-bottom:10px">
+        <svg width="100%" height="100%" viewBox="0 0 300 125" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="52" cy="63" r="36" stroke="#1C355E" stroke-width="1" fill="none" opacity="0.08" stroke-dasharray="7 5"/>
+          <circle cx="248" cy="63" r="36" stroke="#1C355E" stroke-width="1" fill="none" opacity="0.08" stroke-dasharray="7 5"/>
+          <g fill="#1C355E" stroke="#1C355E" stroke-linecap="round">
+            <circle cx="50" cy="30" r="11"/>
+            <line x1="50" y1="41" x2="50" y2="70" stroke-width="3.5"/>
+            <line x1="32" y1="53" x2="70" y2="51" stroke-width="3"/>
+            <line x1="70" y1="51" x2="82" y2="38" stroke-width="3"/>
+            <line x1="82" y1="38" x2="95" y2="18" stroke-width="3.5"/>
+            <line x1="88" y1="26" x2="99" y2="32" stroke-width="2.5"/>
+            <line x1="50" y1="70" x2="38" y2="96" stroke-width="3"/>
+            <line x1="50" y1="70" x2="62" y2="96" stroke-width="3"/>
+          </g>
+          <g stroke="#1C355E" stroke-linecap="round" stroke-width="4">
+            <line x1="124" y1="25" x2="176" y2="100"/>
+            <line x1="176" y1="25" x2="124" y2="100"/>
+          </g>
+          <g fill="#1C355E" stroke="#1C355E" stroke-linecap="round">
+            <circle cx="250" cy="30" r="11"/>
+            <line x1="242" y1="21" x2="232" y2="6" stroke-width="3"/>
+            <line x1="258" y1="21" x2="268" y2="6" stroke-width="3"/>
+            <rect x="237" y="41" width="26" height="22" rx="3" fill="#1C355E" stroke="none"/>
+            <line x1="218" y1="52" x2="237" y2="52" stroke-width="3"/>
+            <line x1="263" y1="52" x2="282" y2="52" stroke-width="3"/>
+            <line x1="244" y1="63" x2="232" y2="90" stroke-width="3"/>
+            <line x1="256" y1="63" x2="268" y2="90" stroke-width="3"/>
+          </g>
+        </svg>
+      </div>
+      <div class="url-address-bar">🔍 www.knossosvirtualqueue.com</div>
+    </div>
+  </div>
+
+  <!-- Screen 4: Queue Position / Join Screen -->
+  <div id="scr-queue-pos" class="wireframe-screen hidden">
+    <div style="width:100%;text-align:center;margin-top:8px">
+      <span class="brand-small">LINORINTH</span>
+      <p class="position-label" style="margin-top:22px">YOU ARE POSITION</p>
+      <div class="number-badge" id="lbl-queue-val">54</div>
+      <p class="position-label">IN LINE</p>
+    </div>
+    <div class="card-container">
+      <p class="body-desc">
+        A Minotaur is inside the Labyrinth! Fight the Minotaur and escape to skip the line for a special entrance to the palace
+      </p>
+    </div>
+    <button class="btn-action" onclick="showRulesScreen()">JOIN GAME</button>
+  </div>
+
+  <!-- Screen 5: Instructions / Initial Beginning -->
+  <div id="scr-rules" class="wireframe-screen hidden">
+    <div style="width:100%">
+      <div class="instructions-nav">
+        <button class="menu-icon-btn" onclick="fallbackToStart()">
+          <span></span><span></span><span></span>
+        </button>
+        <span class="brand-small" style="margin:0;opacity:1">LINORINTH</span>
+        <div style="width:32px"></div>
+      </div>
+      <div class="steps-container">
+        <div class="step-row">
+          <div><span class="step-num-label">STEP 1</span><span class="step-action-label">FIND SWORD</span></div>
+        </div>
+        <div class="step-row">
+          <div class="step-icon-wrap">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <g stroke="#1C355E" stroke-linecap="round">
+                <circle cx="10" cy="7" r="4" fill="#1C355E"/>
+                <line x1="10" y1="11" x2="10" y2="22" stroke-width="2"/>
+                <line x1="3" y1="16" x2="18" y2="15" stroke-width="2"/>
+                <line x1="18" y1="15" x2="24" y2="8" stroke-width="2"/>
+                <line x1="24" y1="8" x2="29" y2="3" stroke-width="2.2"/>
+                <line x1="27" y1="5" x2="31" y2="8" stroke-width="1.5"/>
+                <line x1="10" y1="22" x2="5" y2="30" stroke-width="2"/>
+                <line x1="10" y1="22" x2="15" y2="30" stroke-width="2"/>
+                <circle cx="24" cy="20" r="4" fill="#1C355E"/>
+                <line x1="21" y1="17" x2="18" y2="12" stroke-width="1.5"/>
+                <line x1="27" y1="17" x2="30" y2="12" stroke-width="1.5"/>
+                <line x1="18" y1="23" x2="30" y2="23" stroke-width="2"/>
+                <line x1="24" y1="24" x2="20" y2="31" stroke-width="2"/>
+                <line x1="24" y1="24" x2="28" y2="31" stroke-width="2"/>
+              </g>
+            </svg>
+          </div>
+          <div><span class="step-num-label">STEP 2</span><span class="step-action-label">SLAY MINOTAUR</span></div>
+        </div>
+        <div class="step-row">
+          <div class="step-icon-wrap">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <g stroke="#1C355E" stroke-linecap="round">
+                <circle cx="23" cy="7" r="4" fill="#1C355E"/>
+                <line x1="23" y1="11" x2="18" y2="21" stroke-width="2"/>
+                <line x1="18" y1="21" x2="10" y2="29" stroke-width="2"/>
+                <line x1="18" y1="21" x2="25" y2="29" stroke-width="2"/>
+                <line x1="14" y1="15" x2="25" y2="13" stroke-width="2"/>
+                <line x1="25" y1="13" x2="30" y2="18" stroke-width="2"/>
+                <line x1="5" y1="16" x2="1" y2="16" stroke-width="1.8" opacity="0.4"/>
+                <line x1="6" y1="21" x2="2" y2="21" stroke-width="1.8" opacity="0.4"/>
+                <line x1="7" y1="26" x2="3" y2="26" stroke-width="1.8" opacity="0.4"/>
+              </g>
+            </svg>
+          </div>
+          <div><span class="step-num-label">STEP 3</span><span class="step-action-label">ESCAPE LABYRINTH</span></div>
+        </div>
+        <div class="step-row">
+          <div class="step-icon-wrap">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <g fill="#1C355E">
+                <polygon points="3,14 16,3 29,14"/>
+                <rect x="3" y="14" width="26" height="2.5"/>
+                <rect x="5" y="16.5" width="2.5" height="10"/>
+                <rect x="11" y="16.5" width="2.5" height="10"/>
+                <rect x="17" y="16.5" width="2.5" height="10"/>
+                <rect x="23" y="16.5" width="2.5" height="10"/>
+                <rect x="3" y="26.5" width="26" height="2.5"/>
+                <rect x="1" y="29" width="30" height="2"/>
+              </g>
+            </svg>
+          </div>
+          <div><span class="step-num-label">STEP 4</span><span class="step-action-label">ENTER KNOSSOS PALACE</span></div>
+        </div>
+      </div>
+    </div>
+    <button class="btn-action" onclick="triggerLiveGame()">ENTER LABYRINTH</button>
   </div>
 
   <div id="game-canvas-wrapper">
@@ -309,26 +509,31 @@
   'use strict';
 
   // Screen Flow Management Navigation Functions
-  function showQueueScreen() {
+  function showWelcomeScreen() {
     document.getElementById('scr-lang').className = 'wireframe-screen past';
-    document.getElementById('scr-queue').className = 'wireframe-screen active';
+    document.getElementById('scr-welcome').className = 'wireframe-screen';
   }
-
-  function showRulesScreen() {
+  function showJoinQueueScreen() {
+    document.getElementById('scr-welcome').className = 'wireframe-screen past';
+    document.getElementById('scr-queue').className = 'wireframe-screen';
+  }
+  function showQueuePosScreen() {
     document.getElementById('scr-queue').className = 'wireframe-screen past';
-    document.getElementById('scr-rules').className = 'wireframe-screen active';
+    document.getElementById('scr-queue-pos').className = 'wireframe-screen';
   }
-
+  function showRulesScreen() {
+    document.getElementById('scr-queue-pos').className = 'wireframe-screen past';
+    document.getElementById('scr-rules').className = 'wireframe-screen';
+  }
   function fallbackToStart() {
-    document.getElementById('scr-rules').className = 'wireframe-screen hidden';
-    document.getElementById('scr-queue').className = 'wireframe-screen hidden';
-    document.getElementById('scr-lang').className = 'wireframe-screen active';
+    ['scr-welcome','scr-queue','scr-queue-pos','scr-rules'].forEach(id => {
+      document.getElementById(id).className = 'wireframe-screen hidden';
+    });
+    document.getElementById('scr-lang').className = 'wireframe-screen';
   }
-
   function triggerLiveGame() {
     document.getElementById('scr-rules').style.display = 'none';
     document.getElementById('game-canvas-wrapper').style.display = 'block';
-    
     currentAppView = 'GAME';
     gameState = 'PLAYING';
     releaseJoy();
