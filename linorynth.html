@@ -387,6 +387,24 @@
     }
   })();
 
+  // Pick a random side and position for the 2x2 spawn room on the maze border
+  const _sides = ['top','bottom','left','right'];
+  const _side  = _sides[Math.floor(Math.random()*4)];
+  const _sr0   = _side==='top' ? 0 : _side==='bottom' ? ROWS-2 : Math.floor(Math.random()*(ROWS-1));
+  const _sc0   = _side==='left' ? 0 : _side==='right' ? COLS-2 : Math.floor(Math.random()*(COLS-1));
+  const spawnRoom = {side:_side, r0:_sr0, c0:_sc0};
+
+  // Carve open all internal walls of the 2x2 spawn room
+  maze[idx(_sr0,  _sc0)]   |= 2|4;
+  maze[idx(_sr0,  _sc0+1)] |= 4|8;
+  maze[idx(_sr0+1,_sc0)]   |= 1|2;
+  maze[idx(_sr0+1,_sc0+1)] |= 1|8;
+  // Guarantee a passage from the room into the maze interior
+  if(_side==='top')    { maze[idx(_sr0+1,_sc0+1)]|=4; maze[idx(_sr0+2,_sc0+1)]|=1; }
+  if(_side==='bottom') { maze[idx(_sr0,  _sc0+1)]|=1; maze[idx(_sr0-1,_sc0+1)]|=4; }
+  if(_side==='left')   { maze[idx(_sr0+1,_sc0+1)]|=2; maze[idx(_sr0+1,_sc0+2)]|=8; }
+  if(_side==='right')  { maze[idx(_sr0+1,_sc0)]  |=8; maze[idx(_sr0+1,_sc0-1)]|=2; }
+
   // --- Core Pathfinding Mechanics ---
   const DMAP = [{dr:-1,dc:0,bit:1},{dr:0,dc:1,bit:2},{dr:1,dc:0,bit:4},{dr:0,dc:-1,bit:8}];
 
@@ -452,7 +470,7 @@
   const PLAYER_R=CELL*0.28, MINO_R=CELL*0.33;
   let playerSpawn, swordSpawn, minoSpawn;
   function initSpawns(){
-    playerSpawn = randomSpawn([],0);
+    playerSpawn = {x:(spawnRoom.c0+1)*CELL, y:(spawnRoom.r0+1)*CELL};
     swordSpawn  = randomSpawn([playerSpawn], ROWS/3);
     minoSpawn   = randomSpawn([playerSpawn, swordSpawn], ROWS/4);
   }
@@ -462,10 +480,13 @@
   const mino   = {x:0,y:0,r:MINO_R,path:[],pathTimer:0};
   let SWORD_X=0, SWORD_Y=0, swordCollected=false;
 
+  let gameState='MENU', theseusTimer=0, lastTime=0, heartPhase=0, minoKilled=false, killFlashTimer=0;
+
   function applySpawns(){
     player.x=playerSpawn.x; player.y=playerSpawn.y; player.isTheseus=false;
     mino.x=minoSpawn.x; mino.y=minoSpawn.y; mino.path=[]; mino.pathTimer=0;
     SWORD_X=swordSpawn.x; SWORD_Y=swordSpawn.y; swordCollected=false;
+    minoKilled=false; killFlashTimer=0;
   }
   applySpawns();
 
@@ -476,8 +497,6 @@
     outerR:CTRL_H*0.38, innerR:CTRL_H*0.17,
     active:false, touchId:null, dx:0, dy:0,
   };
-
-  let gameState='MENU', theseusTimer=0, lastTime=0;
   let queuePos = Math.floor(Math.random() * 21) + 25;
   let queueTimer = 15 + Math.random() * 25;
   
@@ -499,18 +518,34 @@
     if(d<cr&&d>1e-6) return {nx:dx/d,ny:dy/d,pen:cr-d};
     return null;
   }
+  function isDoorWall(x1,y1,x2,y2){
+    const {side,r0,c0}=spawnRoom;
+    if(side==='top')    return y1===0     && y2===0     && x1>=c0*CELL && x2<=(c0+2)*CELL;
+    if(side==='bottom') return y1===MAZE_H && y2===MAZE_H && x1>=c0*CELL && x2<=(c0+2)*CELL;
+    if(side==='left')   return x1===0     && x2===0     && y1>=r0*CELL && y2<=(r0+2)*CELL;
+    if(side==='right')  return x1===MAZE_W && x2===MAZE_W && y1>=r0*CELL && y2<=(r0+2)*CELL;
+    return false;
+  }
+  function inDoorZone(ent){
+    const {side,r0,c0}=spawnRoom;
+    if(side==='top'||side==='bottom') return ent.x>=c0*CELL && ent.x<=(c0+2)*CELL;
+    return ent.y>=r0*CELL && ent.y<=(r0+2)*CELL;
+  }
   function resolveWalls(ent){
     const{r,c}=worldToCell(ent.x,ent.y);
     for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){
       const nr=r+dr,nc=c+dc;
       if(nr<0||nr>=ROWS||nc<0||nc>=COLS) continue;
       for(const[x1,y1,x2,y2] of cellWalls(nr,nc)){
+        if(minoKilled && ent===player && isDoorWall(x1,y1,x2,y2)) continue;
         const col=circleVsSeg(ent.x,ent.y,ent.r,x1,y1,x2,y2);
         if(col){ent.x-=col.nx*col.pen;ent.y-=col.ny*col.pen;}
       }
     }
-    ent.x=Math.max(ent.r,Math.min(MAZE_W-ent.r,ent.x));
-    ent.y=Math.max(ent.r,Math.min(MAZE_H-ent.r,ent.y));
+    const canExit=minoKilled && ent===player && inDoorZone(ent);
+    const {side}=spawnRoom;
+    ent.x=Math.max(canExit&&side==='left'  ?-ent.r*4:ent.r, Math.min(canExit&&side==='right' ?MAZE_W+ent.r*4:MAZE_W-ent.r, ent.x));
+    ent.y=Math.max(canExit&&side==='top'   ?-ent.r*4:ent.r, Math.min(canExit&&side==='bottom'?MAZE_H+ent.r*4:MAZE_H-ent.r, ent.y));
   }
 
   // --- Input Receivers ---
@@ -518,7 +553,7 @@
     const rect=canvas.getBoundingClientRect();
     return{x:(cx-rect.left)*(W/rect.width),y:(cy-rect.top)*(H/rect.height)};
   }
-  function startJoy(x,y,id){joy.active=true;joy.touchId=id;joy.baseX=x;joy.baseY=y;joy.x=x;joy.y=y;joy.dx=0;joy.dy=0;}
+  function startJoy(x,y,id){joy.active=true;joy.touchId=id;joy.x=joy.baseX;joy.y=joy.baseY;joy.dx=0;joy.dy=0;}
   function moveJoy(x,y){
     const dx=x-joy.baseX,dy=y-joy.baseY,d=Math.hypot(dx,dy);
     if(d>joy.outerR){joy.x=joy.baseX+dx/d*joy.outerR;joy.y=joy.baseY+dy/d*joy.outerR;}else{joy.x=x;joy.y=y;}
@@ -576,30 +611,50 @@
     player.y+=(ky||joy.dy)*PLAYER_SPEED*dt;
     resolveWalls(player);
 
+    if(!minoKilled){
+      const heartDist = dist(player.x, player.y, mino.x, mino.y);
+      const heartT = 1 - Math.min(1, heartDist / (CELL * 14));
+      const bps = 0.1 + heartT * 3.4;
+      heartPhase += bps * dt;
+      if (heartPhase >= 1) heartPhase -= 1;
+    }
+
     if(!swordCollected&&dist(player.x,player.y,SWORD_X,SWORD_Y)<CELL*0.7){
       swordCollected=true; player.isTheseus=true; theseusTimer=2.8;
       mino.pathTimer=0;
     }
     if(theseusTimer>0) theseusTimer-=dt;
+    if(killFlashTimer>0) killFlashTimer-=dt;
 
-    mino.pathTimer-=dt;
-    if(mino.pathTimer<=0){
-      mino.pathTimer=0.7;
-      const{r:mr,c:mc}=worldToCell(mino.x,mino.y);
-      const{r:pr,c:pc}=worldToCell(player.x,player.y);
-      mino.path = player.isTheseus ? bfsRunAway(mr,mc,pr,pc) : bfs(mr,mc,pr,pc);
-    }
-    if(mino.path.length>1){
-      const ni=mino.path[1], tgt=cellCenter(Math.floor(ni/COLS),ni%COLS);
-      const dx=tgt.x-mino.x,dy=tgt.y-mino.y,d=Math.hypot(dx,dy);
-      if(d>1){mino.x+=dx/d*MINO_SPEED*dt;mino.y+=dy/d*MINO_SPEED*dt;}
-      if(d<CELL*0.2) mino.path.shift();
-    }
-    resolveWalls(mino);
+    if(!minoKilled){
+      mino.pathTimer-=dt;
+      if(mino.pathTimer<=0){
+        mino.pathTimer=0.7;
+        const{r:mr,c:mc}=worldToCell(mino.x,mino.y);
+        const{r:pr,c:pc}=worldToCell(player.x,player.y);
+        mino.path = player.isTheseus ? bfsRunAway(mr,mc,pr,pc) : bfs(mr,mc,pr,pc);
+      }
+      if(mino.path.length>1){
+        const ni=mino.path[1], tgt=cellCenter(Math.floor(ni/COLS),ni%COLS);
+        const dx=tgt.x-mino.x,dy=tgt.y-mino.y,d=Math.hypot(dx,dy);
+        if(d>1){mino.x+=dx/d*MINO_SPEED*dt;mino.y+=dy/d*MINO_SPEED*dt;}
+        if(d<CELL*0.2) mino.path.shift();
+      }
+      resolveWalls(mino);
 
-    const contact = dist(player.x,player.y,mino.x,mino.y) < PLAYER_R+MINO_R+2;
-    if(contact){
-      gameState = player.isTheseus ? 'WIN' : 'DEAD';
+      const contact = dist(player.x,player.y,mino.x,mino.y) < PLAYER_R+MINO_R+2;
+      if(contact){
+        if(player.isTheseus){ minoKilled=true; killFlashTimer=3.5; }
+        else { gameState='DEAD'; }
+      }
+    }
+
+    if(minoKilled){
+      const {side}=spawnRoom;
+      if(side==='top'    && player.y<-PLAYER_R)        gameState='WIN';
+      if(side==='bottom' && player.y>MAZE_H+PLAYER_R)  gameState='WIN';
+      if(side==='left'   && player.x<-PLAYER_R)        gameState='WIN';
+      if(side==='right'  && player.x>MAZE_W+PLAYER_R)  gameState='WIN';
     }
   }
 
@@ -714,8 +769,50 @@
     ctx.translate(W/2-camX, GAME_H/2-camY);
 
     drawMaze(camX,camY);
+
+    // Draw spawn room door on the border wall
+    {
+      ctx.fillStyle='#5C3317';
+      const {side:ds,r0:dr,c0:dc}=spawnRoom;
+      const dx=dc*CELL, dy=dr*CELL;
+      const off=CELL*0.18, thick=CELL*0.3, post=CELL*0.14;
+      if(ds==='top'){
+        if(!minoKilled){ ctx.fillRect(dx,-off,2*CELL,thick); }
+        else { ctx.fillRect(dx,-off,post,thick); ctx.fillRect(dx+2*CELL-post,-off,post,thick); }
+      } else if(ds==='bottom'){
+        if(!minoKilled){ ctx.fillRect(dx,MAZE_H+off-thick,2*CELL,thick); }
+        else { ctx.fillRect(dx,MAZE_H+off-thick,post,thick); ctx.fillRect(dx+2*CELL-post,MAZE_H+off-thick,post,thick); }
+      } else if(ds==='left'){
+        if(!minoKilled){ ctx.fillRect(-off,dy,thick,2*CELL); }
+        else { ctx.fillRect(-off,dy,thick,post); ctx.fillRect(-off,dy+2*CELL-post,thick,post); }
+      } else {
+        if(!minoKilled){ ctx.fillRect(MAZE_W+off-thick,dy,thick,2*CELL); }
+        else { ctx.fillRect(MAZE_W+off-thick,dy,thick,post); ctx.fillRect(MAZE_W+off-thick,dy+2*CELL-post,thick,post); }
+      }
+    }
+
     if(!swordCollected) drawSwordItem(SWORD_X,SWORD_Y,CELL*0.30);
-    drawMinotaur(mino.x,mino.y,CELL*0.38);
+    if(minoKilled){
+      ctx.strokeStyle='rgba(150,50,50,0.55)';ctx.lineWidth=3;ctx.lineCap='round';
+      ctx.beginPath();
+      ctx.moveTo(mino.x-CELL*0.28,mino.y-CELL*0.28);ctx.lineTo(mino.x+CELL*0.28,mino.y+CELL*0.28);
+      ctx.moveTo(mino.x+CELL*0.28,mino.y-CELL*0.28);ctx.lineTo(mino.x-CELL*0.28,mino.y+CELL*0.28);
+      ctx.stroke();
+    } else {
+      drawMinotaur(mino.x,mino.y,CELL*0.38);
+    }
+    if(!minoKilled){
+      const hAlpha = 0.7 * (1 - heartPhase);
+      const s = PLAYER_R * (1 + heartPhase * 4);
+      const hx = player.x, hy = player.y;
+      ctx.beginPath();
+      ctx.moveTo(hx, hy + s);
+      ctx.bezierCurveTo(hx - s*1.4, hy + s*0.3, hx - s*1.4, hy - s*0.7, hx, hy - s*0.15);
+      ctx.bezierCurveTo(hx + s*1.4, hy - s*0.7, hx + s*1.4, hy + s*0.3, hx, hy + s);
+      ctx.strokeStyle = `rgba(220, 50, 50, ${hAlpha})`;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
     drawStickFigure(player.x,player.y,CELL*0.38,'#D5E6ED');
     if(player.isTheseus) drawSwordOnFigure(player.x,player.y,CELL*0.38);
 
@@ -729,6 +826,18 @@
       ctx.font=`bold ${Math.floor(W*0.056)}px Georgia,serif`;
       ctx.fillText('You have now become',W/2,by+bh*0.44);
       ctx.fillText('Theseus!',W/2,by+bh*0.82);
+    }
+
+    if(killFlashTimer>0){
+      const a=Math.min(1,killFlashTimer);
+      const bx=W*0.05,by=GAME_H*0.35,bw=W*0.9,bh=GAME_H*0.24;
+      ctx.fillStyle=`rgba(28, 53, 94, ${a*0.88})`;ctx.fillRect(bx,by,bw,bh);
+      ctx.fillStyle=`rgba(220, 50, 50, ${a})`;ctx.textAlign='center';
+      ctx.font=`bold ${Math.floor(W*0.047)}px Georgia,serif`;
+      ctx.fillText('You killed the Minotaur.',W/2,by+bh*0.38);
+      ctx.fillStyle=`rgba(213, 230, 237, ${a})`;
+      ctx.font=`${Math.floor(W*0.042)}px Georgia,serif`;
+      ctx.fillText('Now exit the maze!',W/2,by+bh*0.72);
     }
 
     ctx.fillStyle='#D5E6ED';ctx.fillRect(0,GAME_H,W,CTRL_H);
