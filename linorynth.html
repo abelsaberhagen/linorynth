@@ -208,6 +208,60 @@
   }
   canvas { display: block; touch-action: none; }
 
+  /* Pause Button */
+  #btn-pause {
+    position: absolute;
+    top: 6px;
+    left: 8px;
+    z-index: 20;
+    background: rgba(120, 120, 120, 0.42);
+    border: none;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    padding: 0;
+    flex-direction: row;
+  }
+  #btn-pause span { display: block; width: 4px; height: 16px; background: white; border-radius: 2px; }
+
+  /* Pause Overlays */
+  .pause-overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: #D5E6ED;
+    z-index: 15;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 48px 24px 36px;
+    font-family: 'Georgia', serif;
+    color: #1C355E;
+  }
+  .pause-play-btn {
+    width: 72px; height: 72px;
+    background: none; border: none;
+    cursor: pointer; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pause-queue-badge {
+    background: #FCB075;
+    border-radius: 10px;
+    padding: 4px 14px;
+    font-weight: bold;
+    font-size: 22px;
+    color: #1C355E;
+    margin-top: 4px;
+    display: inline-block;
+  }
+
   /* --- Figma Screen Components --- */
   .brand-small {
     display: block; font-size: 11px; letter-spacing: 3px;
@@ -502,6 +556,111 @@
 
   <div id="game-canvas-wrapper">
     <canvas id="c"></canvas>
+
+    <!-- Pause button (circle with two white bars) -->
+    <button id="btn-pause" onclick="pauseGame()">
+      <span></span><span></span>
+    </button>
+
+    <!-- Pause screen overlay -->
+    <div id="scr-pause" class="pause-overlay">
+      <div style="width:100%;display:flex;justify-content:space-between;align-items:flex-start">
+        <span class="brand-small" style="opacity:1;margin:0">LINORINTH</span>
+        <div style="text-align:right">
+          <span style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;opacity:0.65;display:block;line-height:1.4">Current position<br>in line</span>
+          <span class="pause-queue-badge" id="pause-queue-num">—</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:28px">
+        <p style="font-size:24px;font-weight:bold;letter-spacing:1px">Game Paused</p>
+        <button class="pause-play-btn" onclick="resumeGame()">
+          <svg width="68" height="68" viewBox="0 0 68 68" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="18,10 58,34 18,58" fill="#1C355E"/>
+          </svg>
+        </button>
+      </div>
+      <div style="width:100%;display:flex;flex-direction:column;align-items:center;gap:10px">
+        <button class="btn-action" onclick="showPauseInstructions()">Instructions</button>
+        <button class="btn-action" onclick="quitGame()">Quit Game</button>
+      </div>
+    </div>
+
+    <!-- Instructions sub-panel (from pause) -->
+    <div id="scr-pause-instructions" class="pause-overlay">
+      <div style="width:100%">
+        <div class="instructions-nav">
+          <button class="menu-icon-btn" onclick="hidePauseInstructions()">
+            <span></span><span></span><span></span>
+          </button>
+          <span class="brand-small" style="margin:0;opacity:1">LINORINTH</span>
+          <span class="pause-queue-badge" id="pause-instr-queue-num" style="font-size:16px;padding:2px 10px">—</span>
+        </div>
+        <div class="steps-container">
+          <div class="step-row">
+            <div><span class="step-num-label">STEP 1</span><span class="step-action-label">FIND SWORD</span></div>
+          </div>
+          <div class="step-row">
+            <div class="step-icon-wrap">
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <g stroke="#1C355E" stroke-linecap="round">
+                  <circle cx="10" cy="7" r="4" fill="#1C355E"/>
+                  <line x1="10" y1="11" x2="10" y2="22" stroke-width="2"/>
+                  <line x1="3" y1="16" x2="18" y2="15" stroke-width="2"/>
+                  <line x1="18" y1="15" x2="24" y2="8" stroke-width="2"/>
+                  <line x1="24" y1="8" x2="29" y2="3" stroke-width="2.2"/>
+                  <line x1="27" y1="5" x2="31" y2="8" stroke-width="1.5"/>
+                  <line x1="10" y1="22" x2="5" y2="30" stroke-width="2"/>
+                  <line x1="10" y1="22" x2="15" y2="30" stroke-width="2"/>
+                  <circle cx="24" cy="20" r="4" fill="#1C355E"/>
+                  <line x1="21" y1="17" x2="18" y2="12" stroke-width="1.5"/>
+                  <line x1="27" y1="17" x2="30" y2="12" stroke-width="1.5"/>
+                  <line x1="18" y1="23" x2="30" y2="23" stroke-width="2"/>
+                  <line x1="24" y1="24" x2="20" y2="31" stroke-width="2"/>
+                  <line x1="24" y1="24" x2="28" y2="31" stroke-width="2"/>
+                </g>
+              </svg>
+            </div>
+            <div><span class="step-num-label">STEP 2</span><span class="step-action-label">SLAY MINOTAUR</span></div>
+          </div>
+          <div class="step-row">
+            <div class="step-icon-wrap">
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <g stroke="#1C355E" stroke-linecap="round">
+                  <circle cx="23" cy="7" r="4" fill="#1C355E"/>
+                  <line x1="23" y1="11" x2="18" y2="21" stroke-width="2"/>
+                  <line x1="18" y1="21" x2="10" y2="29" stroke-width="2"/>
+                  <line x1="18" y1="21" x2="25" y2="29" stroke-width="2"/>
+                  <line x1="14" y1="15" x2="25" y2="13" stroke-width="2"/>
+                  <line x1="25" y1="13" x2="30" y2="18" stroke-width="2"/>
+                  <line x1="5" y1="16" x2="1" y2="16" stroke-width="1.8" opacity="0.4"/>
+                  <line x1="6" y1="21" x2="2" y2="21" stroke-width="1.8" opacity="0.4"/>
+                  <line x1="7" y1="26" x2="3" y2="26" stroke-width="1.8" opacity="0.4"/>
+                </g>
+              </svg>
+            </div>
+            <div><span class="step-num-label">STEP 3</span><span class="step-action-label">ESCAPE LABYRINTH</span></div>
+          </div>
+          <div class="step-row">
+            <div class="step-icon-wrap">
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <g fill="#1C355E">
+                  <polygon points="3,14 16,3 29,14"/>
+                  <rect x="3" y="14" width="26" height="2.5"/>
+                  <rect x="5" y="16.5" width="2.5" height="10"/>
+                  <rect x="11" y="16.5" width="2.5" height="10"/>
+                  <rect x="17" y="16.5" width="2.5" height="10"/>
+                  <rect x="23" y="16.5" width="2.5" height="10"/>
+                  <rect x="3" y="26.5" width="26" height="2.5"/>
+                  <rect x="1" y="29" width="30" height="2"/>
+                </g>
+              </svg>
+            </div>
+            <div><span class="step-num-label">STEP 4</span><span class="step-action-label">ENTER KNOSSOS PALACE</span></div>
+          </div>
+        </div>
+      </div>
+      <button class="btn-action" onclick="hidePauseInstructions()">Back to Pause</button>
+    </div>
   </div>
 </div>
 
@@ -534,9 +693,42 @@
   function triggerLiveGame() {
     document.getElementById('scr-rules').style.display = 'none';
     document.getElementById('game-canvas-wrapper').style.display = 'block';
+    document.getElementById('btn-pause').style.display = 'flex';
     currentAppView = 'GAME';
     gameState = 'PLAYING';
     releaseJoy();
+  }
+  function pauseGame() {
+    gameState = 'PAUSED';
+    const q = document.getElementById('pause-queue-num');
+    const q2 = document.getElementById('pause-instr-queue-num');
+    if(q) q.textContent = typeof queuePos !== 'undefined' ? queuePos : '—';
+    if(q2) q2.textContent = typeof queuePos !== 'undefined' ? queuePos : '—';
+    document.getElementById('btn-pause').style.display = 'none';
+    document.getElementById('scr-pause').style.display = 'flex';
+  }
+  function resumeGame() {
+    document.getElementById('scr-pause').style.display = 'none';
+    document.getElementById('scr-pause-instructions').style.display = 'none';
+    document.getElementById('btn-pause').style.display = 'flex';
+    gameState = 'PLAYING';
+  }
+  function showPauseInstructions() {
+    document.getElementById('scr-pause').style.display = 'none';
+    document.getElementById('scr-pause-instructions').style.display = 'flex';
+  }
+  function hidePauseInstructions() {
+    document.getElementById('scr-pause-instructions').style.display = 'none';
+    document.getElementById('scr-pause').style.display = 'flex';
+  }
+  function quitGame() {
+    document.getElementById('scr-pause').style.display = 'none';
+    document.getElementById('scr-pause-instructions').style.display = 'none';
+    document.getElementById('btn-pause').style.display = 'none';
+    document.getElementById('game-canvas-wrapper').style.display = 'none';
+    gameState = 'MENU';
+    currentAppView = 'INTRO_FLOW';
+    fallbackToStart();
   }
 
   // Runtime Routing Identifier
@@ -770,6 +962,7 @@
 
   canvas.addEventListener('touchstart',e=>{
     e.preventDefault();
+    if(gameState==='PAUSED') return;
     if(gameState!=='PLAYING'){restartGame();return;}
     for(const t of e.changedTouches){
       const{x,y}=getPos(t.clientX,t.clientY);
@@ -785,6 +978,7 @@
 
   let mouseDown=false;
   canvas.addEventListener('mousedown',e=>{
+    if(gameState==='PAUSED') return;
     if(gameState!=='PLAYING'){restartGame();return;}
     const{x,y}=getPos(e.clientX,e.clientY);
     if(y>GAME_H){mouseDown=true;startJoy(x,y,null);}
