@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Linorinth - Playable Flow</title>
+<style>
+  /* --- Global Reset & Theme Styling --- */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { 
+    background: #111; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    height: 100vh; 
+    overflow: hidden;
+    font-family: 'Georgia', serif;
+    color: #1C355E;
+  }
+
+  /* Responsive Main Smartphone Container Frame */
+  #app-frame {
+    position: relative;
+    background-color: #D5E6ED;
+    border-radius: 36px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Smartphone Speaker/Camera Notch Overlay */
+  .device-notch {
+    width: 150px;
+    height: 28px;
+    background: #1C355E;
+    border-bottom-left-radius: 16px;
+    border-bottom-right-radius: 16px;
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    pointer-events: none;
+  }
+
+  /* HTML Component Screen Layout Containers */
+  .wireframe-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    padding: 50px 24px 24px 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    text-align: center;
+    background-color: #D5E6ED;
+    z-index: 10;
+    transition: transform 0.4s ease-in-out, opacity 0.4s ease-in-out;
+  }
+  .wireframe-screen.hidden {
+    transform: translateX(100%);
+    opacity: 0;
+    pointer-events: none;
+  }
+  .wireframe-screen.past {
+    transform: translateX(-100%);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* --- UI Tokens & Assets Typography --- */
+  h1 {
+    font-size: 26px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-top: 20px;
+    line-height: 1.2;
+  }
+  .label-tag {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-weight: bold;
+    opacity: 0.8;
+  }
+  .body-desc {
+    font-size: 16px;
+    line-height: 1.5;
+    padding: 0 10px;
+  }
+
+  /* Form Elements */
+  .select-wrapper {
+    width: 100%;
+    max-width: 250px;
+    position: relative;
+  }
+  select {
+    width: 100%;
+    padding: 14px 20px;
+    font-family: 'Georgia', serif;
+    font-size: 16px;
+    color: #1C355E;
+    background: rgba(255, 255, 255, 0.45);
+    border: 2px solid #1C355E;
+    border-radius: 14px;
+    appearance: none;
+    cursor: pointer;
+    outline: none;
+  }
+
+  /* Identity Badges */
+  .number-badge {
+    background-color: #FCB075;
+    width: 130px;
+    height: 130px;
+    border-radius: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 70px;
+    font-weight: bold;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    margin: 15px auto;
+  }
+
+  /* System CTA Buttons */
+  .btn-action {
+    background-color: #FCB075;
+    color: #1C355E;
+    border: none;
+    padding: 16px 0;
+    font-family: 'Georgia', serif;
+    font-size: 16px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-radius: 14px;
+    cursor: pointer;
+    width: 100%;
+    max-width: 250px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+    outline: none;
+  }
+  .btn-text-link {
+    background: transparent;
+    border: none;
+    color: #1C355E;
+    font-family: 'Georgia', serif;
+    font-size: 15px;
+    text-decoration: underline;
+    cursor: pointer;
+    margin-top: 10px;
+  }
+
+  /* Graphic Illustration Container */
+  .graphic-container {
+    width: 100%;
+    max-width: 320px;
+    height: 125px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.35);
+    border: 1.5px solid #1C355E;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.04);
+  }
+  .card-container {
+    background: rgba(255, 255, 255, 0.25);
+    border: 1px solid rgba(28, 53, 94, 0.1);
+    border-radius: 20px;
+    padding: 22px 18px;
+    width: 100%;
+  }
+
+  /* Global Web Address Overlays */
+  .url-address-bar {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid #BACFD6;
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 12px;
+    color: #556B85;
+    text-align: left;
+    font-family: sans-serif;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* Game Core Frame Canvas Workspace */
+  #game-canvas-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    display: none;
+  }
+  canvas { display: block; touch-action: none; }
+
+  /* Pause Button */
+  #btn-pause {
+    position: absolute;
+    top: 6px;
+    left: 8px;
+    z-index: 20;
+    background: rgba(120, 120, 120, 0.42);
+    border: none;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    padding: 0;
+    flex-direction: row;
+  }
+  #btn-pause span { display: block; width: 4px; height: 16px; background: white; border-radius: 2px; }
+
+  /* Pause Overlays */
+  .pause-overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: #D5E6ED;
+    z-index: 15;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 48px 24px 36px;
+    font-family: 'Georgia', serif;
+    color: #1C355E;
+  }
+  .pause-play-btn {
+    width: 72px; height: 72px;
+    background: none; border: none;
+    cursor: pointer; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pause-queue-badge {
+    background: #FCB075;
+    border-radius: 10px;
+    padding: 4px 14px;
+    font-weight: bold;
+    font-size: 22px;
+    color: #1C355E;
+    margin-top: 4px;
+    display: inline-block;
+  }
+
+  /* --- Figma Screen Components --- */
+  .brand-small {
+    display: block; font-size: 11px; letter-spacing: 3px;
+    text-transform: uppercase; font-weight: bold;
+    text-align: center; opacity: 0.65; margin-bottom: 2px;
+  }
+  .logo-large {
+    font-size: 34px; font-weight: bold; letter-spacing: 3px;
+    text-transform: uppercase; font-family: 'Georgia', serif;
+    line-height: 1; text-align: center;
+  }
+  .welcome-h {
+    font-size: 22px; font-weight: bold; letter-spacing: 3px;
+    text-transform: uppercase; margin-top: 8px; text-align: center;
+  }
+  .lang-option-btn {
+    background: none; border: none;
+    border-bottom: 1.5px solid rgba(28,53,94,0.25);
+    font-family: 'Georgia', serif; font-size: 18px;
+    color: #1C355E; cursor: pointer; padding: 12px 0;
+    width: 180px; text-align: center; display: block;
+  }
+  .position-label {
+    font-size: 12px; letter-spacing: 2.5px; text-transform: uppercase;
+    font-weight: bold; opacity: 0.72; text-align: center; margin: 5px 0;
+  }
+  .steps-container { width: 100%; display: flex; flex-direction: column; margin-top: 6px; }
+  .step-row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 11px 0; border-bottom: 1px solid rgba(28,53,94,0.12); width: 100%;
+  }
+  .step-icon-wrap {
+    width: 46px; height: 46px; background: rgba(255,255,255,0.4);
+    border-radius: 10px; display: flex; align-items: center;
+    justify-content: center; flex-shrink: 0;
+  }
+  .step-num-label {
+    font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: rgba(28,53,94,0.5); display: block; line-height: 1.3;
+  }
+  .step-action-label {
+    font-size: 14px; font-weight: bold; color: #1C355E;
+    letter-spacing: 0.3px; display: block; line-height: 1.3;
+  }
+  .instructions-nav {
+    display: flex; justify-content: space-between; align-items: center;
+    width: 100%; margin-bottom: 6px;
+  }
+  .menu-icon-btn {
+    background: #FCB075; border: none; width: 32px; height: 32px;
+    border-radius: 7px; cursor: pointer; display: flex; flex-direction: column;
+    justify-content: center; align-items: center; gap: 4px; padding: 0;
+  }
+  .menu-icon-btn span { display: block; width: 16px; height: 2px; background: #1C355E; border-radius: 1px; }
+</style>
+</head>
+<body>
+
+<div id="app-frame">
+  <div class="device-notch"></div>
+
+  <!-- Screen 1: Language Selection -->
+  <div id="scr-lang" class="wireframe-screen">
+    <div style="width:100%;text-align:center;margin-top:8px">
+      <span class="brand-small">LINORINTH</span>
+      <div class="logo-large">LINORINTH</div>
+      <p style="font-size:16px;margin-top:14px">Select your language</p>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+      <button class="lang-option-btn" onclick="showWelcomeScreen()">English</button>
+      <button class="lang-option-btn" onclick="showWelcomeScreen()">Greek</button>
+    </div>
+    <div style="width:100%">
+      <div class="graphic-container" style="margin-bottom:10px">
+        <img src="Linorinth.png" style="width:100%;height:100%;object-fit:cover;display:block">
+      </div>
+      <div class="url-address-bar">🔍 www.knossosvirtualqueue.com</div>
+    </div>
+  </div>
+
+  <!-- Screen 2: Welcome / Info Page -->
+  <div id="scr-welcome" class="wireframe-screen hidden">
+    <div style="width:100%;text-align:center;margin-top:8px">
+      <span class="brand-small">LINORINTH</span>
+      <div class="logo-large">LINORINTH</div>
+      <p class="welcome-h">WELCOME</p>
+      <p class="body-desc" style="margin-top:12px">
+        Welcome to Knossos's Virtual Admission Line! From here, you can join a digital queue and explore the area while you wait instead of standing in a physical line.
+      </p>
+    </div>
+    <button class="btn-action" onclick="showJoinQueueScreen()">BEGIN</button>
+    <div style="width:100%">
+      <div class="graphic-container" style="margin-bottom:10px">
+        <img src="Linorinth.png" style="width:100%;height:100%;object-fit:cover;display:block">
+      </div>
+      <div class="url-address-bar">🔍 www.knossosvirtualqueue.com</div>
+    </div>
+  </div>
+
+  <!-- Screen 3: Join Virtual Queue -->
+  <div id="scr-queue" class="wireframe-screen hidden">
+    <div style="width:100%;text-align:center;margin-top:8px">
+      <span class="brand-small">LINORINTH</span>
+      <div class="logo-large">LINORINTH</div>
+      <h1 style="margin-top:18px;line-height:1.2">Join Virtual<br>Queue</h1>
+    </div>
+    <div style="width:100%;display:flex;flex-direction:column;align-items:center;gap:8px">
+      <button class="btn-action" onclick="showQueuePosScreen()">JOIN LINE</button>
+      <button class="btn-text-link" onclick="fallbackToStart()">Not right now</button>
+    </div>
+    <div style="width:100%">
+      <div class="graphic-container" style="margin-bottom:10px">
+        <img src="Linorinth.png" style="width:100%;height:100%;object-fit:cover;display:block">
+      </div>
+      <div class="url-address-bar">🔍 www.knossosvirtualqueue.com</div>
+    </div>
+  </div>
+
+  <!-- Screen 4: Queue Position / Join Screen -->
+  <div id="scr-queue-pos" class="wireframe-screen hidden">
+    <div style="width:100%;text-align:center;margin-top:8px">
+      <span class="brand-small">LINORINTH</span>
+      <p class="position-label" style="margin-top:22px">YOU ARE POSITION</p>
+      <div class="number-badge" id="lbl-queue-val">54</div>
+      <p class="position-label">IN LINE</p>
+    </div>
+    <div class="card-container">
+      <p class="body-desc">
+        A Minotaur is inside the Labyrinth! Fight the Minotaur and escape to skip the line for a special entrance to the palace
+      </p>
+    </div>
+    <button class="btn-action" onclick="showRulesScreen()">JOIN GAME</button>
+  </div>
+
+  <!-- Screen 5: Instructions / Initial Beginning -->
+  <div id="scr-rules" class="wireframe-screen hidden">
+    <div style="width:100%">
+      <div class="instructions-nav">
+        <button class="menu-icon-btn" onclick="fallbackToStart()">
+          <span></span><span></span><span></span>
+        </button>
+        <span class="brand-small" style="margin:0;opacity:1">LINORINTH</span>
+        <div style="width:32px"></div>
+      </div>
+      <div class="steps-container">
+        <div class="step-row">
+          <div><span class="step-num-label">STEP 1</span><span class="step-action-label">FIND SWORD</span></div>
+        </div>
+        <div class="step-row">
+          <div class="step-icon-wrap">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <g stroke="#1C355E" stroke-linecap="round">
+                <circle cx="10" cy="7" r="4" fill="#1C355E"/>
+                <line x1="10" y1="11" x2="10" y2="22" stroke-width="2"/>
+                <line x1="3" y1="16" x2="18" y2="15" stroke-width="2"/>
+                <line x1="18" y1="15" x2="24" y2="8" stroke-width="2"/>
+                <line x1="24" y1="8" x2="29" y2="3" stroke-width="2.2"/>
+                <line x1="27" y1="5" x2="31" y2="8" stroke-width="1.5"/>
+                <line x1="10" y1="22" x2="5" y2="30" stroke-width="2"/>
+                <line x1="10" y1="22" x2="15" y2="30" stroke-width="2"/>
+                <circle cx="24" cy="20" r="4" fill="#1C355E"/>
+                <line x1="21" y1="17" x2="18" y2="12" stroke-width="1.5"/>
+                <line x1="27" y1="17" x2="30" y2="12" stroke-width="1.5"/>
+                <line x1="18" y1="23" x2="30" y2="23" stroke-width="2"/>
+                <line x1="24" y1="24" x2="20" y2="31" stroke-width="2"/>
+                <line x1="24" y1="24" x2="28" y2="31" stroke-width="2"/>
+              </g>
+            </svg>
+          </div>
+          <div><span class="step-num-label">STEP 2</span><span class="step-action-label">SLAY MINOTAUR</span></div>
+        </div>
+        <div class="step-row">
+          <div class="step-icon-wrap">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <g stroke="#1C355E" stroke-linecap="round">
+                <circle cx="23" cy="7" r="4" fill="#1C355E"/>
+                <line x1="23" y1="11" x2="18" y2="21" stroke-width="2"/>
+                <line x1="18" y1="21" x2="10" y2="29" stroke-width="2"/>
+                <line x1="18" y1="21" x2="25" y2="29" stroke-width="2"/>
+                <line x1="14" y1="15" x2="25" y2="13" stroke-width="2"/>
+                <line x1="25" y1="13" x2="30" y2="18" stroke-width="2"/>
+                <line x1="5" y1="16" x2="1" y2="16" stroke-width="1.8" opacity="0.4"/>
+                <line x1="6" y1="21" x2="2" y2="21" stroke-width="1.8" opacity="0.4"/>
+                <line x1="7" y1="26" x2="3" y2="26" stroke-width="1.8" opacity="0.4"/>
+              </g>
+            </svg>
+          </div>
+          <div><span class="step-num-label">STEP 3</span><span class="step-action-label">ESCAPE LABYRINTH</span></div>
+        </div>
+        <div class="step-row">
+          <div class="step-icon-wrap">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <g fill="#1C355E">
+                <polygon points="3,14 16,3 29,14"/>
+                <rect x="3" y="14" width="26" height="2.5"/>
+                <rect x="5" y="16.5" width="2.5" height="10"/>
+                <rect x="11" y="16.5" width="2.5" height="10"/>
+                <rect x="17" y="16.5" width="2.5" height="10"/>
+                <rect x="23" y="16.5" width="2.5" height="10"/>
+                <rect x="3" y="26.5" width="26" height="2.5"/>
+                <rect x="1" y="29" width="30" height="2"/>
+              </g>
+            </svg>
+          </div>
+          <div><span class="step-num-label">STEP 4</span><span class="step-action-label">ENTER KNOSSOS PALACE</span></div>
+        </div>
+      </div>
+    </div>
+    <button class="btn-action" onclick="triggerLiveGame()">ENTER LABYRINTH</button>
+  </div>
+
+  <div id="game-canvas-wrapper">
+    <canvas id="c"></canvas>
+
+    <!-- Pause button (circle with two white bars) -->
+    <button id="btn-pause" onclick="pauseGame()">
+      <span></span><span></span>
+    </button>
+
+    <!-- Pause screen overlay -->
+    <div id="scr-pause" class="pause-overlay">
+      <div style="width:100%;display:flex;justify-content:space-between;align-items:flex-start">
+        <span class="brand-small" style="opacity:1;margin:0">LINORINTH</span>
+        <div style="text-align:right">
+          <span style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;opacity:0.65;display:block;line-height:1.4">Current position<br>in line</span>
+          <span class="pause-queue-badge" id="pause-queue-num">—</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:28px">
+        <p style="font-size:24px;font-weight:bold;letter-spacing:1px">Game Paused</p>
+        <button class="pause-play-btn" onclick="resumeGame()">
+          <svg width="68" height="68" viewBox="0 0 68 68" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="18,10 58,34 18,58" fill="#1C355E"/>
+          </svg>
+        </button>
+      </div>
+      <div style="width:100%;display:flex;flex-direction:column;align-items:center;gap:10px">
+        <button class="btn-action" onclick="showPauseInstructions()">Instructions</button>
+        <button class="btn-action" onclick="quitGame()">Quit Game</button>
+      </div>
+    </div>
+
+    <!-- Instructions sub-panel (from pause) -->
+    <div id="scr-pause-instructions" class="pause-overlay">
+      <div style="width:100%">
+        <div class="instructions-nav">
+          <button class="menu-icon-btn" onclick="hidePauseInstructions()">
+            <span></span><span></span><span></span>
+          </button>
+          <span class="brand-small" style="margin:0;opacity:1">LINORINTH</span>
+          <span class="pause-queue-badge" id="pause-instr-queue-num" style="font-size:16px;padding:2px 10px">—</span>
+        </div>
+        <div class="steps-container">
+          <div class="step-row">
+            <div class="step-icon-wrap">
+              <img src="FIND%20SWORD.png" style="width:100%;height:100%;object-fit:contain;display:block">
+            </div>
+            <div><span class="step-num-label">STEP 1</span><span class="step-action-label">FIND SWORD</span></div>
+          </div>
+          <div class="step-row">
+            <div class="step-icon-wrap">
+              <img src="KILL%20MINOTAUR.png" style="width:100%;height:100%;object-fit:contain;display:block">
+            </div>
+            <div><span class="step-num-label">STEP 2</span><span class="step-action-label">SLAY MINOTAUR</span></div>
+          </div>
+          <div class="step-row">
+            <div class="step-icon-wrap">
+              <img src="ESCAPE%20MAZE.png" style="width:100%;height:100%;object-fit:contain;display:block">
+            </div>
+            <div><span class="step-num-label">STEP 3</span><span class="step-action-label">ESCAPE LABYRINTH</span></div>
+          </div>
+          <div class="step-row">
+            <div class="step-icon-wrap">
+              <img src="ENTER%20PALACE.png" style="width:100%;height:100%;object-fit:contain;display:block">
+            </div>
+            <div><span class="step-num-label">STEP 4</span><span class="step-action-label">ENTER KNOSSOS PALACE</span></div>
+          </div>
+        </div>
+      </div>
+      <button class="btn-action" onclick="hidePauseInstructions()">Back to Pause</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  'use strict';
+
+  // Screen Flow Management Navigation Functions
+  function showWelcomeScreen() {
+    document.getElementById('scr-lang').className = 'wireframe-screen past';
+    document.getElementById('scr-welcome').className = 'wireframe-screen';
+  }
+  function showJoinQueueScreen() {
+    document.getElementById('scr-welcome').className = 'wireframe-screen past';
+    document.getElementById('scr-queue').className = 'wireframe-screen';
+  }
+  function showQueuePosScreen() {
+    document.getElementById('scr-queue').className = 'wireframe-screen past';
+    document.getElementById('scr-queue-pos').className = 'wireframe-screen';
+  }
+  function showRulesScreen() {
+    document.getElementById('scr-queue-pos').className = 'wireframe-screen past';
+    document.getElementById('scr-rules').className = 'wireframe-screen';
+  }
+  function fallbackToStart() {
+    ['scr-welcome','scr-queue','scr-queue-pos','scr-rules'].forEach(id => {
+      document.getElementById(id).className = 'wireframe-screen hidden';
+    });
+    document.getElementById('scr-lang').className = 'wireframe-screen';
+  }
+  function triggerLiveGame() {
+    document.getElementById('scr-rules').style.display = 'none';
+    document.getElementById('game-canvas-wrapper').style.display = 'block';
+    document.getElementById('btn-pause').style.display = 'flex';
+    currentAppView = 'GAME';
+    gameState = 'PLAYING';
+    releaseJoy();
+  }
+  function pauseGame() {
+    gameState = 'PAUSED';
+    const q = document.getElementById('pause-queue-num');
+    const q2 = document.getElementById('pause-instr-queue-num');
+    if(q) q.textContent = typeof queuePos !== 'undefined' ? queuePos : '—';
+    if(q2) q2.textContent = typeof queuePos !== 'undefined' ? queuePos : '—';
+    document.getElementById('btn-pause').style.display = 'none';
+    document.getElementById('scr-pause').style.display = 'flex';
+  }
+  function resumeGame() {
+    document.getElementById('scr-pause').style.display = 'none';
+    document.getElementById('scr-pause-instructions').style.display = 'none';
+    document.getElementById('btn-pause').style.display = 'flex';
+    gameState = 'PLAYING';
+  }
+  function showPauseInstructions() {
+    document.getElementById('scr-pause').style.display = 'none';
+    document.getElementById('scr-pause-instructions').style.display = 'flex';
+  }
+  function hidePauseInstructions() {
+    document.getElementById('scr-pause-instructions').style.display = 'none';
+    document.getElementById('scr-pause').style.display = 'flex';
+  }
+  function quitGame() {
+    document.getElementById('scr-pause').style.display = 'none';
+    document.getElementById('scr-pause-instructions').style.display = 'none';
+    document.getElementById('btn-pause').style.display = 'none';
+    document.getElementById('game-canvas-wrapper').style.display = 'none';
+    gameState = 'MENU';
+    currentAppView = 'INTRO_FLOW';
+    fallbackToStart();
+  }
+
+  // Runtime Routing Identifier
+  let currentAppView = 'INTRO_FLOW';
+
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+
+  // --- Dynamic Layout Synchronization Sizing Engine ---
+  const ASPECT = 390 / 844;
+  let W, H;
+  
+  function resizeAppFrame() {
+    if (window.innerHeight * ASPECT <= window.innerWidth) { H = window.innerHeight; W = Math.floor(H * ASPECT); }
+    else { W = window.innerWidth; H = Math.floor(W / ASPECT); }
+    
+    const frame = document.getElementById('app-frame');
+    frame.style.width = W + 'px';
+    frame.style.height = H + 'px';
+
+    canvas.width = W; canvas.height = H;
+    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  }
+  window.addEventListener('resize', resizeAppFrame);
+  resizeAppFrame();
+
+  const QUEUE_H = Math.max(24, Math.floor(H * 0.034));
+  const GAME_H = Math.floor(H * 0.67);
+  const CTRL_H = H - GAME_H;
+  const CELL = Math.floor(W / 11);
+  const COLS = 23, ROWS = 37;
+  const MAZE_W = COLS * CELL, MAZE_H = ROWS * CELL;
+
+  const maze = new Uint8Array(ROWS * COLS);
+  function idx(r, c) { return r * COLS + c; }
+
+  // Recursive maze backtracker generation algorithm
+  (function generate() {
+    const visited = new Uint8Array(ROWS * COLS);
+    const stack = [0]; visited[0] = 1;
+    const dirs = [{dr:-1,dc:0,bit:1,ob:4},{dr:0,dc:1,bit:2,ob:8},{dr:1,dc:0,bit:4,ob:1},{dr:0,dc:-1,bit:8,ob:2}];
+    while (stack.length) {
+      const top = stack[stack.length-1], r = Math.floor(top/COLS), c = top%COLS;
+      const sh = dirs.slice().sort(() => Math.random()-0.5);
+      let moved = false;
+      for (const d of sh) {
+        const nr=r+d.dr, nc=c+d.dc;
+        if (nr<0||nr>=ROWS||nc<0||nc>=COLS||visited[idx(nr,nc)]) continue;
+        maze[idx(r,c)]|=d.bit; maze[idx(nr,nc)]|=d.ob;
+        visited[idx(nr,nc)]=1; stack.push(idx(nr,nc)); moved=true; break;
+      }
+      if (!moved) stack.pop();
+    }
+  })();
+
+  // Pick a random side and position for the 2x2 spawn room on the maze border
+  const _sides = ['top','bottom','left','right'];
+  const _side  = _sides[Math.floor(Math.random()*4)];
+  const _sr0   = _side==='top' ? 0 : _side==='bottom' ? ROWS-2 : Math.floor(Math.random()*(ROWS-1));
+  const _sc0   = _side==='left' ? 0 : _side==='right' ? COLS-2 : Math.floor(Math.random()*(COLS-1));
+  const spawnRoom = {side:_side, r0:_sr0, c0:_sc0};
+
+  // Carve open all internal walls of the 2x2 spawn room
+  maze[idx(_sr0,  _sc0)]   |= 2|4;
+  maze[idx(_sr0,  _sc0+1)] |= 4|8;
+  maze[idx(_sr0+1,_sc0)]   |= 1|2;
+  maze[idx(_sr0+1,_sc0+1)] |= 1|8;
+  // Guarantee a passage from the room into the maze interior
+  if(_side==='top')    { maze[idx(_sr0+1,_sc0+1)]|=4; maze[idx(_sr0+2,_sc0+1)]|=1; }
+  if(_side==='bottom') { maze[idx(_sr0,  _sc0+1)]|=1; maze[idx(_sr0-1,_sc0+1)]|=4; }
+  if(_side==='left')   { maze[idx(_sr0+1,_sc0+1)]|=2; maze[idx(_sr0+1,_sc0+2)]|=8; }
+  if(_side==='right')  { maze[idx(_sr0+1,_sc0)]  |=8; maze[idx(_sr0+1,_sc0-1)]|=2; }
+
+  // --- Core Pathfinding Mechanics ---
+  const DMAP = [{dr:-1,dc:0,bit:1},{dr:0,dc:1,bit:2},{dr:1,dc:0,bit:4},{dr:0,dc:-1,bit:8}];
+
+  function bfs(sr, sc, er, ec) {
+    const prev = new Int16Array(ROWS*COLS).fill(-1), vis = new Uint8Array(ROWS*COLS);
+    const q = [idx(sr,sc)]; vis[idx(sr,sc)] = 1;
+    let head = 0; const tgt = idx(er,ec);
+    while (head < q.length) {
+      const cur = q[head++]; if (cur===tgt) break;
+      const r=Math.floor(cur/COLS), c=cur%COLS;
+      for (const d of DMAP) {
+        if (!(maze[cur]&d.bit)) continue;
+        const ni = idx(r+d.dr, c+d.dc);
+        if (!vis[ni]) { vis[ni]=1; prev[ni]=cur; q.push(ni); }
+      }
+    }
+    const path=[]; let cur=tgt; while(cur!==-1){path.unshift(cur);cur=prev[cur];} return path;
+  }
+
+  function bfsDist(sr, sc) {
+    const dist = new Int16Array(ROWS*COLS).fill(-1);
+    dist[idx(sr,sc)] = 0;
+    const q = [idx(sr,sc)]; let head = 0;
+    while (head < q.length) {
+      const cur = q[head++];
+      const r=Math.floor(cur/COLS), c=cur%COLS;
+      for (const d of DMAP) {
+        if (!(maze[cur]&d.bit)) continue;
+        const ni = idx(r+d.dr, c+d.dc);
+        if (dist[ni]===-1) { dist[ni]=dist[cur]+1; q.push(ni); }
+      }
+    }
+    return dist;
+  }
+
+  function bfsRunAway(mr, mc, pr, pc) {
+    const playerDist = bfsDist(pr, pc);
+    let maxD = -1, tr = mr, tc = mc;
+    for (let r=0; r<ROWS; r++) for (let c=0; c<COLS; c++) {
+      const d = playerDist[idx(r,c)];
+      if (d > maxD) { maxD=d; tr=r; tc=c; }
+    }
+    return bfs(mr, mc, tr, tc);
+  }
+
+  function cellCenter(r,c) { return {x:c*CELL+CELL/2, y:r*CELL+CELL/2}; }
+  function worldToCell(x,y) {
+    return {r:Math.max(0,Math.min(ROWS-1,Math.floor(y/CELL))), c:Math.max(0,Math.min(COLS-1,Math.floor(x/CELL)))};
+  }
+  function dist(ax,ay,bx,by) { return Math.hypot(ax-bx,ay-by); }
+
+  function randomSpawn(others=[], minCells=0) {
+    for (let a=0; a<2000; a++) {
+      const r=Math.floor(Math.random()*ROWS), c=Math.floor(Math.random()*COLS);
+      const {x,y}=cellCenter(r,c);
+      let ok=true;
+      for (const o of others) if (dist(x,y,o.x,o.y)<minCells*CELL){ok=false;break;}
+      if (ok) return {x,y};
+    }
+    return cellCenter(Math.floor(ROWS/2),Math.floor(COLS/2));
+  }
+
+  const PLAYER_R=CELL*0.28, MINO_R=CELL*0.33;
+  let playerSpawn, swordSpawn, minoSpawn;
+  function initSpawns(){
+    playerSpawn = {x:(spawnRoom.c0+1)*CELL, y:(spawnRoom.r0+1)*CELL};
+    swordSpawn  = randomSpawn([playerSpawn], ROWS/3);
+    minoSpawn   = randomSpawn([playerSpawn, swordSpawn], ROWS/4);
+  }
+  initSpawns();
+
+  const player = {x:0,y:0,r:PLAYER_R,isTheseus:false};
+  const mino   = {x:0,y:0,r:MINO_R,path:[],pathTimer:0};
+  let SWORD_X=0, SWORD_Y=0, swordCollected=false;
+
+  let gameState='MENU', theseusTimer=0, lastTime=0, heartPhase=0, minoKilled=false, killFlashTimer=0;
+
+  function applySpawns(){
+    player.x=playerSpawn.x; player.y=playerSpawn.y; player.isTheseus=false;
+    mino.x=minoSpawn.x; mino.y=minoSpawn.y; mino.path=[]; mino.pathTimer=0;
+    SWORD_X=swordSpawn.x; SWORD_Y=swordSpawn.y; swordCollected=false;
+    minoKilled=false; killFlashTimer=0;
+  }
+  applySpawns();
+
+  // Setup Virtual Joystick Dimensions
+  const joy = {
+    baseX:W*0.5, baseY:GAME_H+CTRL_H*0.5,
+    x:W*0.5,     y:GAME_H+CTRL_H*0.5,
+    outerR:CTRL_H*0.38, innerR:CTRL_H*0.17,
+    active:false, touchId:null, dx:0, dy:0,
+  };
+  let queuePos = Math.floor(Math.random() * 21) + 25;
+  let queueTimer = 15 + Math.random() * 25;
+  
+  document.getElementById('lbl-queue-val').innerText = queuePos;
+
+  // --- Collision Matrix Handlers ---
+  function cellWalls(r, c) {
+    const walls=[], x=c*CELL, y=r*CELL, cell=maze[idx(r,c)];
+    if(!(cell&1)) walls.push([x,y,x+CELL,y]);
+    if(!(cell&2)) walls.push([x+CELL,y,x+CELL,y+CELL]);
+    if(!(cell&4)) walls.push([x,y+CELL,x+CELL,y+CELL]);
+    if(!(cell&8)) walls.push([x,y,x,y+CELL]);
+    return walls;
+  }
+  function circleVsSeg(cx,cy,cr,x1,y1,x2,y2){
+    const fillX=x2-x1,fillY=y2-y1,len2=fillX*fillX+fillY*fillY;
+    let t=((cx-x1)*fillX+(cy-y1)*fillY)/len2; t=Math.max(0,Math.min(1,t));
+    const dx=x1+t*fillX-cx,dy=y1+t*fillY-cy,d=Math.sqrt(dx*dx+dy*dy);
+    if(d<cr&&d>1e-6) return {nx:dx/d,ny:dy/d,pen:cr-d};
+    return null;
+  }
+  function isDoorWall(x1,y1,x2,y2){
+    const {side,r0,c0}=spawnRoom;
+    if(side==='top')    return y1===0     && y2===0     && x1>=c0*CELL && x2<=(c0+2)*CELL;
+    if(side==='bottom') return y1===MAZE_H && y2===MAZE_H && x1>=c0*CELL && x2<=(c0+2)*CELL;
+    if(side==='left')   return x1===0     && x2===0     && y1>=r0*CELL && y2<=(r0+2)*CELL;
+    if(side==='right')  return x1===MAZE_W && x2===MAZE_W && y1>=r0*CELL && y2<=(r0+2)*CELL;
+    return false;
+  }
+  function inDoorZone(ent){
+    const {side,r0,c0}=spawnRoom;
+    if(side==='top'||side==='bottom') return ent.x>=c0*CELL && ent.x<=(c0+2)*CELL;
+    return ent.y>=r0*CELL && ent.y<=(r0+2)*CELL;
+  }
+  function resolveWalls(ent){
+    const{r,c}=worldToCell(ent.x,ent.y);
+    for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){
+      const nr=r+dr,nc=c+dc;
+      if(nr<0||nr>=ROWS||nc<0||nc>=COLS) continue;
+      for(const[x1,y1,x2,y2] of cellWalls(nr,nc)){
+        if(minoKilled && ent===player && isDoorWall(x1,y1,x2,y2)) continue;
+        const col=circleVsSeg(ent.x,ent.y,ent.r,x1,y1,x2,y2);
+        if(col){ent.x-=col.nx*col.pen;ent.y-=col.ny*col.pen;}
+      }
+    }
+    const canExit=minoKilled && ent===player && inDoorZone(ent);
+    const {side}=spawnRoom;
+    ent.x=Math.max(canExit&&side==='left'  ?-ent.r*4:ent.r, Math.min(canExit&&side==='right' ?MAZE_W+ent.r*4:MAZE_W-ent.r, ent.x));
+    ent.y=Math.max(canExit&&side==='top'   ?-ent.r*4:ent.r, Math.min(canExit&&side==='bottom'?MAZE_H+ent.r*4:MAZE_H-ent.r, ent.y));
+  }
+
+  // --- Input Receivers ---
+  function getPos(cx,cy){
+    const rect=canvas.getBoundingClientRect();
+    return{x:(cx-rect.left)*(W/rect.width),y:(cy-rect.top)*(H/rect.height)};
+  }
+  function startJoy(x,y,id){joy.active=true;joy.touchId=id;joy.x=joy.baseX;joy.y=joy.baseY;joy.dx=0;joy.dy=0;}
+  function moveJoy(x,y){
+    const dx=x-joy.baseX,dy=y-joy.baseY,d=Math.hypot(dx,dy);
+    if(d>joy.outerR){joy.x=joy.baseX+dx/d*joy.outerR;joy.y=joy.baseY+dy/d*joy.outerR;}else{joy.x=x;joy.y=y;}
+    joy.dx=(joy.x-joy.baseX)/joy.outerR;joy.dy=(joy.y-joy.baseY)/joy.outerR;
+  }
+  function releaseJoy(){joy.active=false;joy.touchId=null;joy.x=joy.baseX;joy.y=joy.baseY;joy.dx=0;joy.dy=0;}
+
+  function restartGame(){initSpawns();applySpawns();theseusTimer=0;gameState='PLAYING';releaseJoy();}
+
+  canvas.addEventListener('touchstart',e=>{
+    e.preventDefault();
+    if(gameState==='PAUSED') return;
+    if(gameState!=='PLAYING'){restartGame();return;}
+    for(const t of e.changedTouches){
+      const{x,y}=getPos(t.clientX,t.clientY);
+      if(!joy.active&&y>GAME_H) startJoy(x,y,t.identifier);
+    }
+  },{passive:false});
+  canvas.addEventListener('touchmove',e=>{
+    e.preventDefault();
+    for(const t of e.changedTouches)
+      if(t.identifier===joy.touchId){const{x,y}=getPos(t.clientX,t.clientY);moveJoy(x,y);}
+  },{passive:false});
+  canvas.addEventListener('touchend',e=>{for(const t of e.changedTouches)if(t.identifier===joy.touchId)releaseJoy();});
+
+  let mouseDown=false;
+  canvas.addEventListener('mousedown',e=>{
+    if(gameState==='PAUSED') return;
+    if(gameState!=='PLAYING'){restartGame();return;}
+    const{x,y}=getPos(e.clientX,e.clientY);
+    if(y>GAME_H){mouseDown=true;startJoy(x,y,null);}
+  });
+  canvas.addEventListener('mousemove',e=>{if(!mouseDown)return;const{x,y}=getPos(e.clientX,e.clientY);moveJoy(x,y);});
+  window.addEventListener('mouseup',()=>{mouseDown=false;releaseJoy();});
+
+  const keys={};
+  window.addEventListener('keydown',e=>{
+    if(currentAppView !== 'GAME') return;
+    keys[e.key]=true; if(e.key===' ')e.preventDefault();
+    if(gameState!=='PLAYING'&&(e.key===' '||e.key==='Enter'))restartGame();
+  });
+  window.addEventListener('keyup',e=>{keys[e.key]=false;});
+
+  // --- Calculations Update Loops ---
+  const PLAYER_SPEED=CELL*3.8, MINO_SPEED=CELL*2.1;
+
+  function update(dt){
+    if(gameState!=='PLAYING') return;
+
+    let kx=0,ky=0;
+    if(keys['ArrowLeft']||keys['a']||keys['A'])kx-=1;
+    if(keys['ArrowRight']||keys['d']||keys['D'])kx+=1;
+    if(keys['ArrowUp']||keys['w']||keys['W'])ky-=1;
+    if(keys['ArrowDown']||keys['s']||keys['S'])ky+=1;
+    const kl=Math.hypot(kx,ky); if(kl>0){kx/=kl;ky/=kl;}
+    player.x+=(kx||joy.dx)*PLAYER_SPEED*dt;
+    player.y+=(ky||joy.dy)*PLAYER_SPEED*dt;
+    resolveWalls(player);
+
+    if(!minoKilled){
+      const heartDist = dist(player.x, player.y, mino.x, mino.y);
+      const heartT = 1 - Math.min(1, heartDist / (CELL * 14));
+      const bps = 0.1 + heartT * 3.4;
+      heartPhase += bps * dt;
+      if (heartPhase >= 1) heartPhase -= 1;
+    }
+
+    if(!swordCollected&&dist(player.x,player.y,SWORD_X,SWORD_Y)<CELL*0.7){
+      swordCollected=true; player.isTheseus=true; theseusTimer=2.8;
+      mino.pathTimer=0;
+    }
+    if(theseusTimer>0) theseusTimer-=dt;
+    if(killFlashTimer>0) killFlashTimer-=dt;
+
+    if(!minoKilled){
+      mino.pathTimer-=dt;
+      if(mino.pathTimer<=0){
+        mino.pathTimer=0.7;
+        const{r:mr,c:mc}=worldToCell(mino.x,mino.y);
+        const{r:pr,c:pc}=worldToCell(player.x,player.y);
+        mino.path = player.isTheseus ? bfsRunAway(mr,mc,pr,pc) : bfs(mr,mc,pr,pc);
+      }
+      if(mino.path.length>1){
+        const ni=mino.path[1], tgt=cellCenter(Math.floor(ni/COLS),ni%COLS);
+        const dx=tgt.x-mino.x,dy=tgt.y-mino.y,d=Math.hypot(dx,dy);
+        if(d>1){mino.x+=dx/d*MINO_SPEED*dt;mino.y+=dy/d*MINO_SPEED*dt;}
+        if(d<CELL*0.2) mino.path.shift();
+      }
+      resolveWalls(mino);
+
+      const contact = dist(player.x,player.y,mino.x,mino.y) < PLAYER_R+MINO_R+2;
+      if(contact){
+        if(player.isTheseus){ minoKilled=true; killFlashTimer=3.5; }
+        else { gameState='DEAD'; }
+      }
+    }
+
+    if(minoKilled){
+      const {side}=spawnRoom;
+      if(side==='top'    && player.y<-PLAYER_R)        gameState='WIN';
+      if(side==='bottom' && player.y>MAZE_H+PLAYER_R)  gameState='WIN';
+      if(side==='left'   && player.x<-PLAYER_R)        gameState='WIN';
+      if(side==='right'  && player.x>MAZE_W+PLAYER_R)  gameState='WIN';
+    }
+  }
+
+  // --- Rendering Graphics Context Components ---
+  function drawStickFigure(x,y,s,color){
+    ctx.strokeStyle=color;ctx.lineWidth=Math.max(1.5,s*0.11);ctx.lineCap='round';
+    ctx.beginPath();ctx.arc(x,y-s*1.85,s*0.52,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x,y-s*1.33);ctx.lineTo(x,y+s*0.55);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x-s*0.72,y-s*0.58);ctx.lineTo(x+s*0.72,y-s*0.58);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x,y+s*0.55);ctx.lineTo(x-s*0.52,y+s*1.5);ctx.moveTo(x,y+s*0.55);ctx.lineTo(x+s*0.52,y+s*1.5);ctx.stroke();
+  }
+  function drawSwordOnFigure(x,y,s){
+    const sw=s*0.5,ox=x+s*0.88,oy=y-s*0.45;
+    ctx.strokeStyle='#fca259';ctx.lineWidth=Math.max(1.5,sw*0.12);ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(ox,oy-sw*1.5);ctx.lineTo(ox,oy+sw*0.5);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(ox-sw*0.5,oy-sw*0.15);ctx.lineTo(ox+sw*0.5,oy-sw*0.15);ctx.stroke();
+  }
+  function drawMinotaur(x,y,s){
+    ctx.strokeStyle='#c44';ctx.lineWidth=Math.max(1.5,s*0.13);ctx.lineCap='round';
+    ctx.beginPath();ctx.rect(x-s*0.62,y-s*1.1,s*1.24,s*1.35);ctx.stroke();
+    ctx.beginPath();ctx.arc(x,y-s*1.62,s*0.52,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x-s*0.42,y-s*2.06);ctx.lineTo(x-s*0.82,y-s*2.68);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x+s*0.42,y-s*2.06);ctx.lineTo(x+s*0.82,y-s*2.68);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x-s*0.32,y+s*0.25);ctx.lineTo(x-s*0.32,y+s*1.3);ctx.moveTo(x+s*0.32,y+s*0.25);ctx.lineTo(x+s+0.32,y+s*1.3);ctx.stroke();
+  }
+  function drawSwordItem(x,y,size){
+    ctx.shadowColor='rgba(252,176,117,0.7)';ctx.shadowBlur=10;
+    ctx.strokeStyle='#FCB075';ctx.lineWidth=3;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(x,y-size);ctx.lineTo(x,y+size);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x-size*0.55,y-size*0.08);ctx.lineTo(x+size*0.55,y-size*0.08);ctx.stroke();
+    ctx.shadowBlur=0;
+  }
+
+  function drawMaze(camX,camY){
+    const r0=Math.max(0,Math.floor((camY-GAME_H/2)/CELL)-1);
+    const r1=Math.min(ROWS-1,Math.ceil((camY+GAME_H/2)/CELL)+1);
+    const c0=Math.max(0,Math.floor((camX-W/2)/CELL)-1);
+    const c1=Math.min(COLS-1,Math.ceil((camX+W/2)/CELL)+1);
+    ctx.strokeStyle='#556B85';ctx.lineWidth=2;ctx.lineCap='square';
+    ctx.beginPath();
+    for(let r=r0;r<=r1;r++) for(let c=c0;c<=c1;c++){
+      const x=c*CELL,y=r*CELL,cell=maze[idx(r,c)];
+      if(!(cell&1)){ctx.moveTo(x,y);ctx.lineTo(x+CELL,y);}
+      if(!(cell&2)){ctx.moveTo(x+CELL,y);ctx.lineTo(x+CELL,y+CELL);}
+      if(!(cell&4)){ctx.moveTo(x,y+CELL);ctx.lineTo(x+CELL,y+CELL);}
+      if(!(cell&8)){ctx.moveTo(x,y);ctx.lineTo(x,y+CELL);}
+    }
+    ctx.stroke();
+    ctx.strokeStyle='#1C355E';ctx.lineWidth=3;ctx.strokeRect(0,0,MAZE_W,MAZE_H);
+  }
+
+  function drawControls(){
+    ctx.strokeStyle='rgba(28, 53, 94, 0.15)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(0,GAME_H);ctx.lineTo(W,GAME_H);ctx.stroke();
+    ctx.beginPath();ctx.arc(joy.baseX,joy.baseY,joy.outerR,0,Math.PI*2);
+    ctx.strokeStyle='rgba(28, 53, 94, 0.2)';ctx.lineWidth=2.5;ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,0.25)';ctx.fill();
+    ctx.beginPath();ctx.arc(joy.x,joy.y,joy.innerR,0,Math.PI*2);
+    ctx.fillStyle='#1C355E';ctx.fill();
+  }
+
+  function drawQueueBar(){
+    ctx.fillStyle='#1C355E';
+    ctx.fillRect(0,0,W,QUEUE_H);
+    ctx.fillStyle='#FCB075';
+    ctx.textAlign='center';
+    ctx.font=`bold ${Math.floor(QUEUE_H*0.58)}px Georgia,serif`;
+    ctx.fillText(`Virtual Queue Position: ${queuePos}`,W/2,QUEUE_H*0.72);
+  }
+
+  function drawEndScreen(isWin){
+    ctx.fillStyle='#D5E6ED';ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#1C355E';ctx.textAlign='center';
+    
+    if(isWin){
+      ctx.font='bold 20px Georgia,serif'; ctx.fillText('LINORINTH', W/2, 110);
+      ctx.font='bold 28px Georgia,serif'; ctx.fillText('VICTORY!', W/2, 160);
+      ctx.font='16px Georgia,serif'; ctx.fillText('You made it to the end!', W/2, 220);
+      ctx.fillText('YOU ARE POSITION', W/2, 290);
+      
+      ctx.fillStyle='#FCB075'; ctx.beginPath(); ctx.roundRect(W/2-70, 320, 140, 140, 24); ctx.fill();
+      ctx.fillStyle='#1C355E'; ctx.font='bold 76px Georgia,serif'; ctx.fillText('I', W/2, 420);
+      
+      ctx.font='bold 16px Georgia,serif'; ctx.fillText('IN LINE', W/2, 500);
+      ctx.font='15px Georgia,serif';
+      ctx.fillText('Walk to the Linorinth entrance to', W/2, 550);
+      ctx.fillText('claim your instant admission!', W/2, 575);
+    } else {
+      ctx.font='bold 20px Georgia,serif'; ctx.fillText('LINORINTH', W/2, 120);
+      ctx.font='bold 28px Georgia,serif'; ctx.fillText('GAME OVER', W/2, 170);
+      ctx.font='16px Georgia,serif';
+      ctx.fillText('The Minotaur has defeated you!', W/2, 230);
+      ctx.fillText('Fight again or give up?', W/2, 255);
+      
+      ctx.fillStyle='#FCB075'; ctx.beginPath(); ctx.roundRect(W/2-110, 340, 220, 54, 16); ctx.roundRect(W/2-110, 420, 220, 54, 16); ctx.fill();
+      ctx.fillStyle='#1C355E'; ctx.font='bold 16px Georgia,serif';
+      ctx.fillText('REPLAY', W/2, 373);
+      ctx.font='15px Georgia,serif'; ctx.fillText('Return to normal line', W/2, 452);
+    }
+  }
+
+  function render(){
+    if (currentAppView !== 'GAME') return;
+
+    const camX = Math.max(W/2, Math.min(MAZE_W - W/2, player.x));
+    const camY = Math.max(GAME_H/2 - QUEUE_H, Math.min(MAZE_H - GAME_H/2, player.y));
+
+    ctx.fillStyle='#14253D';ctx.fillRect(0,0,W,GAME_H);
+
+    ctx.save();
+    ctx.beginPath();ctx.rect(0,0,W,GAME_H);ctx.clip();
+    ctx.translate(W/2-camX, GAME_H/2-camY);
+
+    drawMaze(camX,camY);
+
+    // Draw spawn room door on the border wall
+    {
+      ctx.fillStyle='#5C3317';
+      const {side:ds,r0:dr,c0:dc}=spawnRoom;
+      const dx=dc*CELL, dy=dr*CELL;
+      const off=CELL*0.18, thick=CELL*0.3, post=CELL*0.14;
+      if(ds==='top'){
+        if(!minoKilled){ ctx.fillRect(dx,-off,2*CELL,thick); }
+        else { ctx.fillRect(dx,-off,post,thick); ctx.fillRect(dx+2*CELL-post,-off,post,thick); }
+      } else if(ds==='bottom'){
+        if(!minoKilled){ ctx.fillRect(dx,MAZE_H+off-thick,2*CELL,thick); }
+        else { ctx.fillRect(dx,MAZE_H+off-thick,post,thick); ctx.fillRect(dx+2*CELL-post,MAZE_H+off-thick,post,thick); }
+      } else if(ds==='left'){
+        if(!minoKilled){ ctx.fillRect(-off,dy,thick,2*CELL); }
+        else { ctx.fillRect(-off,dy,thick,post); ctx.fillRect(-off,dy+2*CELL-post,thick,post); }
+      } else {
+        if(!minoKilled){ ctx.fillRect(MAZE_W+off-thick,dy,thick,2*CELL); }
+        else { ctx.fillRect(MAZE_W+off-thick,dy,thick,post); ctx.fillRect(MAZE_W+off-thick,dy+2*CELL-post,thick,post); }
+      }
+    }
+
+    if(!swordCollected) drawSwordItem(SWORD_X,SWORD_Y,CELL*0.30);
+    if(minoKilled){
+      ctx.strokeStyle='rgba(150,50,50,0.55)';ctx.lineWidth=3;ctx.lineCap='round';
+      ctx.beginPath();
+      ctx.moveTo(mino.x-CELL*0.28,mino.y-CELL*0.28);ctx.lineTo(mino.x+CELL*0.28,mino.y+CELL*0.28);
+      ctx.moveTo(mino.x+CELL*0.28,mino.y-CELL*0.28);ctx.lineTo(mino.x-CELL*0.28,mino.y+CELL*0.28);
+      ctx.stroke();
+    } else {
+      drawMinotaur(mino.x,mino.y,CELL*0.38);
+    }
+    if(!minoKilled){
+      const hAlpha = 0.7 * (1 - heartPhase);
+      const s = PLAYER_R * (1 + heartPhase * 4);
+      const hx = player.x, hy = player.y;
+      ctx.beginPath();
+      ctx.moveTo(hx, hy + s);
+      ctx.bezierCurveTo(hx - s*1.4, hy + s*0.3, hx - s*1.4, hy - s*0.7, hx, hy - s*0.15);
+      ctx.bezierCurveTo(hx + s*1.4, hy - s*0.7, hx + s*1.4, hy + s*0.3, hx, hy + s);
+      ctx.strokeStyle = `rgba(220, 50, 50, ${hAlpha})`;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+    drawStickFigure(player.x,player.y,CELL*0.38,'#D5E6ED');
+    if(player.isTheseus) drawSwordOnFigure(player.x,player.y,CELL*0.38);
+
+    ctx.restore();
+
+    if(theseusTimer>0){
+      const a=Math.min(1,theseusTimer);
+      const bx=W*0.05,by=GAME_H*0.38,bw=W*0.9,bh=GAME_H*0.20;
+      ctx.fillStyle=`rgba(28, 53, 94, ${a*0.85})`;ctx.fillRect(bx,by,bw,bh);
+      ctx.fillStyle=`rgba(252, 176, 117, ${a})`;ctx.textAlign='center';
+      ctx.font=`bold ${Math.floor(W*0.056)}px Georgia,serif`;
+      ctx.fillText('You have now become',W/2,by+bh*0.44);
+      ctx.fillText('Theseus!',W/2,by+bh*0.82);
+    }
+
+    if(killFlashTimer>0){
+      const a=Math.min(1,killFlashTimer);
+      const bx=W*0.05,by=GAME_H*0.35,bw=W*0.9,bh=GAME_H*0.24;
+      ctx.fillStyle=`rgba(28, 53, 94, ${a*0.88})`;ctx.fillRect(bx,by,bw,bh);
+      ctx.fillStyle=`rgba(220, 50, 50, ${a})`;ctx.textAlign='center';
+      ctx.font=`bold ${Math.floor(W*0.047)}px Georgia,serif`;
+      ctx.fillText('You killed the Minotaur.',W/2,by+bh*0.38);
+      ctx.fillStyle=`rgba(213, 230, 237, ${a})`;
+      ctx.font=`${Math.floor(W*0.042)}px Georgia,serif`;
+      ctx.fillText('Now exit the maze!',W/2,by+bh*0.72);
+    }
+
+    ctx.fillStyle='#D5E6ED';ctx.fillRect(0,GAME_H,W,CTRL_H);
+    drawControls();
+
+    if(gameState==='WIN')  drawEndScreen(true);
+    if(gameState==='DEAD') drawEndScreen(false);
+
+    drawQueueBar();
+  }
+
+  // --- Main Animation Engine Loop ---
+  function loop(ts){
+    const dt=Math.min((ts-lastTime)/1000,0.05); lastTime=ts;
+    
+    if(queuePos>0){
+      queueTimer-=dt;
+      if(queueTimer<=0){
+        queuePos--;
+        queueTimer=15+Math.random()*25;
+        document.getElementById('lbl-queue-val').innerText = queuePos;
+      }
+    }
+    
+    update(dt); render(); requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(ts=>{lastTime=ts;requestAnimationFrame(loop);});
+</script>
+</body>
+</html>
