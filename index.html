@@ -59,7 +59,7 @@
   const GAME_H = Math.floor(H * 0.7525);
   const CTRL_H = H - GAME_H;
   const CELL = Math.floor(W / 11);
-  const COLS = 23, ROWS = 37;
+  const COLS = 23, ROWS = 23;
   const MAZE_W = COLS * CELL, MAZE_H = ROWS * CELL;
 
   const maze = new Uint8Array(ROWS * COLS);
@@ -177,6 +177,7 @@
   let threadPath=[], threadPlayerCell={r:-1,c:-1};
   let threadItemX=0, threadItemY=0, threadCollected=false;
   let minimapAlpha = 0.8;
+  let zoom = 1.0; /*, pinchActive = false, pinchStartDist = 1, pinchStartZoom = 1;*/
 
   let pauseImgLoaded = false;
   let instImgLoaded = false;
@@ -337,17 +338,34 @@
     }
   }
 
+  // function pinchDist(e){ return Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY); }
+
   canvas.addEventListener('touchstart',e=>{
     e.preventDefault();
-    const{x,y}=getPos(e.changedTouches[0].clientX,e.changedTouches[0].clientY);
-    handleInteraction(x, y, true, e.changedTouches[0].identifier);
+    // if(e.touches.length===2){
+    //   pinchActive=true; pinchStartDist=pinchDist(e); pinchStartZoom=zoom;
+    //   releaseJoy();
+    //   return;
+    // }
+    // if(!pinchActive){
+      const{x,y}=getPos(e.changedTouches[0].clientX,e.changedTouches[0].clientY);
+      handleInteraction(x, y, true, e.changedTouches[0].identifier);
+    // }
   },{passive:false});
   canvas.addEventListener('touchmove',e=>{
     e.preventDefault();
+    // if(pinchActive && e.touches.length===2){
+    //   const minZoom=Math.min(W/MAZE_W, GAME_H/MAZE_H);
+    //   zoom=Math.max(minZoom, Math.min(1.0, pinchStartZoom*pinchDist(e)/pinchStartDist));
+    //   return;
+    // }
     for(const t of e.changedTouches)
       if(t.identifier===joy.touchId){const{x,y}=getPos(t.clientX,t.clientY);moveJoy(x,y);}
   },{passive:false});
-  canvas.addEventListener('touchend',e=>{for(const t of e.changedTouches)if(t.identifier===joy.touchId)releaseJoy();});
+  canvas.addEventListener('touchend',e=>{
+    // if(pinchActive && e.touches.length<2) pinchActive=false;
+    for(const t of e.changedTouches)if(t.identifier===joy.touchId)releaseJoy();
+  });
 
   let mouseDown=false;
   canvas.addEventListener('mousedown',e=>{
@@ -356,6 +374,11 @@
   });
   canvas.addEventListener('mousemove',e=>{if(!mouseDown)return;const{x,y}=getPos(e.clientX,e.clientY);moveJoy(x,y);});
   window.addEventListener('mouseup',()=>{mouseDown=false;releaseJoy();});
+  // canvas.addEventListener('wheel',e=>{
+  //   e.preventDefault();
+  //   const minZoom=Math.min(W/MAZE_W, GAME_H/MAZE_H);
+  //   zoom=Math.max(minZoom, Math.min(1.0, zoom - e.deltaY * 0.001));
+  // },{passive:false});
 
   const keys={};
   window.addEventListener('keydown',e=>{
@@ -448,13 +471,14 @@
     }
 
     if (player.isTheseus && !minoKilled) {
-      const camX = Math.max(W/2, Math.min(MAZE_W - W/2, player.x));
-      const camY = Math.max(GAME_H/2 - QUEUE_H, Math.min(MAZE_H - GAME_H/2, player.y));
-      const mmWidth  = Math.floor(MAZE_W / 6);
-      const mmHeight = Math.floor(MAZE_H / 6);
+      const _halfW = W / (2 * zoom), _halfH = GAME_H / (2 * zoom);
+      const camX = Math.max(_halfW, Math.min(MAZE_W - _halfW, player.x));
+      const camY = Math.max(_halfH, Math.min(MAZE_H - _halfH, player.y));
+      const mmWidth  = Math.floor(MAZE_W / 6 * 1.32);
+      const mmHeight = Math.floor(MAZE_H / 6 * 1.32);
       const mmX = 8, mmY = GAME_H - mmHeight - 8;
-      const psx = player.x - camX + W / 2;
-      const psy = player.y - camY + GAME_H / 2;
+      const psx = (player.x - camX) * zoom + W / 2;
+      const psy = (player.y - camY) * zoom + GAME_H / 2;
       const overlaps = psx >= mmX && psx <= mmX + mmWidth && psy >= mmY && psy <= mmY + mmHeight;
       const target = overlaps ? 0.2 : 0.8;
       const speed = 0.6 / 0.2;
@@ -509,8 +533,8 @@
   }
 
   function drawMinimap() {
-    const mmWidth  = Math.floor(MAZE_W / 6);
-    const mmHeight = Math.floor(MAZE_H / 6);
+    const mmWidth  = Math.floor(MAZE_W / 6 * 1.32);
+    const mmHeight = Math.floor(MAZE_H / 6 * 1.32);
     const mmX = 8;
     const mmY = GAME_H - mmHeight - 8;
     const scale = mmWidth / MAZE_W;
@@ -521,7 +545,7 @@
     ctx.fillStyle = '#14253D';
     ctx.fillRect(mmX, mmY, mmWidth, mmHeight);
 
-    ctx.strokeStyle = '#556B85';
+    ctx.strokeStyle = '#FFFFFF';
     ctx.lineWidth = 0.5;
     ctx.lineCap = 'square';
     ctx.beginPath();
@@ -539,11 +563,11 @@
     }
     ctx.stroke();
 
-    ctx.strokeStyle = '#1C355E';
+    ctx.strokeStyle = '#FFFFFF';
     ctx.lineWidth = 1;
     ctx.strokeRect(mmX, mmY, mmWidth, mmHeight);
 
-    const sqSize = Math.max(2, Math.floor(CELL * scale * 0.5));
+    const sqSize = Math.max(2, Math.floor(CELL * scale * 0.6));
     const msx = mmX + mino.x * scale - sqSize / 2;
     const msy = mmY + mino.y * scale - sqSize / 2;
     ctx.fillStyle = '#cc4444';
@@ -551,7 +575,7 @@
 
     const psx = mmX + player.x * scale - sqSize / 2;
     const psy = mmY + player.y * scale - sqSize / 2;
-    ctx.fillStyle = '#D5E6ED';
+    ctx.fillStyle = '#FFE600';
     ctx.fillRect(psx, psy, sqSize, sqSize);
 
     ctx.strokeStyle = '#000';
@@ -775,14 +799,17 @@
       return;
     }
 
-    const camX = Math.max(W/2, Math.min(MAZE_W - W/2, player.x));
-    const camY = Math.max(GAME_H/2 - QUEUE_H, Math.min(MAZE_H - GAME_H/2, player.y));
+    const halfW = W / (2 * zoom), halfH = GAME_H / (2 * zoom);
+    const camX = Math.max(halfW, Math.min(MAZE_W - halfW, player.x));
+    const camY = Math.max((GAME_H/2 - QUEUE_H) / zoom, Math.min(MAZE_H - halfH, player.y));
 
     ctx.fillStyle='#14253D';ctx.fillRect(0,0,W,GAME_H);
 
     ctx.save();
     ctx.beginPath();ctx.rect(0,0,W,GAME_H);ctx.clip();
-    ctx.translate(W/2-camX, GAME_H/2-camY);
+    ctx.translate(W/2, GAME_H/2);
+    ctx.scale(zoom, zoom);
+    ctx.translate(-camX, -camY);
 
     drawMaze(camX,camY);
 
@@ -832,10 +859,10 @@
     if (minoKilled && threadCollected && threadPath.length > 1) {
       const {side: ts, r0: tr, c0: tc} = spawnRoom;
       let exitX, exitY;
-      if (ts === 'top')    { exitX = (tc + 1) * CELL; exitY = -3 * CELL; }
-      if (ts === 'bottom') { exitX = (tc + 1) * CELL; exitY = MAZE_H + 3 * CELL; }
-      if (ts === 'left')   { exitX = -3 * CELL;        exitY = (tr + 1) * CELL; }
-      if (ts === 'right')  { exitX = MAZE_W + 3 * CELL; exitY = (tr + 1) * CELL; }
+      if (ts === 'top')    { exitX = (tc + 1) * CELL; exitY = -CELL; }
+      if (ts === 'bottom') { exitX = (tc + 1) * CELL; exitY = MAZE_H + CELL; }
+      if (ts === 'left')   { exitX = -CELL;           exitY = (tr + 1) * CELL; }
+      if (ts === 'right')  { exitX = MAZE_W + CELL;   exitY = (tr + 1) * CELL; }
       ctx.save();
       ctx.shadowColor = 'rgba(247, 224, 15, 0.8)';
       ctx.shadowBlur = 8;
