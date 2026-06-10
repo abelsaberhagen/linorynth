@@ -224,7 +224,9 @@
   const mino   = {x:0,y:0,r:MINO_R,path:[],pathTimer:0};
   let SWORD_X=0, SWORD_Y=0, swordCollected=false;
 
-  let gameState='PLAYING', theseusTimer=0, lastTime=0, heartPhase=0, minoKilled=false, killFlashTimer=0;
+  let gameState='INTRO', theseusTimer=0, lastTime=0, heartPhase=0, minoKilled=false, killFlashTimer=0;
+  let introAnim = null;
+  let screenFadeAlpha = 0;
   let threadPath=[], threadPlayerCell={r:-1,c:-1};
   let threadItemX=0, threadItemY=0, threadCollected=false;
   let minimapAlpha = 0.8;
@@ -270,6 +272,7 @@
     threadCollected=false; threadItemX=0; threadItemY=0; minimapAlpha=0.8;
   }
   applySpawns();
+  startIntro();
 
   const joy = {
     baseX:W*0.5, baseY:GAME_H+CTRL_H*0.5,
@@ -339,6 +342,40 @@
 
   function restartGame(){initSpawns();initTraps();applySpawns();theseusTimer=0;gameState='PLAYING';triviaState=null;releaseJoy();}
 
+  function startIntro() {
+    const entryR = spawnRoom.r0 + 1, entryC = spawnRoom.c0 + 1;
+    const dmap = bfsDist(entryR, entryC);
+
+    // Find cells 22-32 steps from entrance for a longer, more dramatic chase
+    let candidates = [];
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+      const d = dmap[idx(r, c)];
+      if (d >= 22 && d <= 32) candidates.push({r, c});
+    }
+    if (!candidates.length) {
+      let best = {r: entryR, c: entryC}, bestD = 0;
+      for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+        if (dmap[idx(r,c)] > bestD) { bestD = dmap[idx(r,c)]; best = {r, c}; }
+      }
+      candidates = [best];
+    }
+    const startCell = candidates[Math.floor(Math.random() * candidates.length)];
+    const playerPath = bfs(startCell.r, startCell.c, entryR, entryC);
+
+    // Player starts 2 cells ahead on the path so mino is close behind at the start
+    const MINO_HEAD = 2;
+    const minoCell = playerPath[0];
+    const pCell = playerPath[Math.min(MINO_HEAD, playerPath.length - 1)];
+    const minoStart = cellCenter(Math.floor(minoCell/COLS), minoCell%COLS);
+    const pStart   = cellCenter(Math.floor(pCell/COLS),    pCell%COLS);
+
+    player.x = pStart.x;   player.y = pStart.y;   player.isTheseus = false;
+    mino.x   = minoStart.x; mino.y   = minoStart.y; mino.path = []; mino.pathTimer = 0;
+    heartPhase = 0;
+
+    introAnim = { playerPath, playerPathPos: MINO_HEAD, elapsed: 0, textAlpha: 0 };
+  }
+
   function handleEndScreenClick(x, y) {
     if (gameState === 'WIN') {
       window.location.href = "https://www.figma.com/proto/FUkPM7VQLGC21QtSqBMbJt/Linorinth?node-id=1-45&t=nbSETHUmlXBUluo5-0&scaling=min-zoom&content-scaling=fixed&page-id=0%3A1&starting-point-node-id=1%3A34";
@@ -353,6 +390,14 @@
   }
 
   function handleInteraction(x, y, isTouch, touchId) {
+    if (gameState === 'INTRO') {
+      applySpawns();
+      zoom = 1;
+      gameState = 'PLAYING';
+      introAnim = null;
+      screenFadeAlpha = 0;
+      return;
+    }
     if (gameState === 'TRIVIA') {
       handleTriviaClick(x, y);
       return;
@@ -452,6 +497,7 @@
   const keys={};
   window.addEventListener('keydown',e=>{
     keys[e.key]=true; if(e.key===' ')e.preventDefault();
+    if(gameState==='INTRO') { applySpawns(); zoom=1; gameState='PLAYING'; introAnim=null; screenFadeAlpha=0; return; }
     if(gameState==='PAUSED') { gameState = 'PLAYING'; return; }
     if(gameState!=='PLAYING'&&(e.key===' '||e.key==='Enter'))restartGame();
   });
@@ -459,7 +505,69 @@
 
   const PLAYER_SPEED=CELL*3.8, MINO_SPEED=CELL*2.1;
 
+  function updateIntro(dt) {
+    const anim = introAnim;
+    anim.elapsed += dt;
+    anim.textAlpha = Math.min(1, anim.textAlpha + dt * 1.4);
+
+    // Zoom in tight at start, gradually pull back to normal as player nears entrance
+    const introProgress = Math.min(anim.playerPathPos / anim.playerPath.length, 1);
+    zoom = 2.5 - 1.5 * introProgress;
+
+    // Advance player at 60% of normal speed so all 4 text phases have breathing room
+    anim.playerPathPos += (PLAYER_SPEED / CELL) * 0.6 * dt;
+    const pathLen = anim.playerPath.length;
+    const pi = Math.min(Math.floor(anim.playerPathPos), pathLen - 1);
+    const ni = Math.min(pi + 1, pathLen - 1);
+    const frac = anim.playerPathPos - Math.floor(anim.playerPathPos);
+    const cA = anim.playerPath[pi], cB = anim.playerPath[ni];
+    const posA = cellCenter(Math.floor(cA/COLS), cA%COLS);
+    const posB = cellCenter(Math.floor(cB/COLS), cB%COLS);
+    player.x = posA.x + (posB.x - posA.x) * frac;
+    player.y = posA.y + (posB.y - posA.y) * frac;
+
+    // Mino chases player
+    mino.pathTimer -= dt;
+    if (mino.pathTimer <= 0) {
+      mino.pathTimer = 0.7;
+      const {r:mr, c:mc} = worldToCell(mino.x, mino.y);
+      const {r:pr, c:pc} = worldToCell(player.x, player.y);
+      mino.path = bfs(mr, mc, pr, pc);
+    }
+    if (mino.path.length > 1) {
+      const nci = mino.path[1], tgt = cellCenter(Math.floor(nci/COLS), nci%COLS);
+      const dx = tgt.x - mino.x, dy = tgt.y - mino.y, d = Math.hypot(dx, dy);
+      if (d > 1) { mino.x += dx/d * MINO_SPEED * dt; mino.y += dy/d * MINO_SPEED * dt; }
+      if (d < CELL * 0.2) mino.path.shift();
+    }
+    resolveWalls(mino);
+
+    // Heartbeat driven by actual distance
+    const heartDist = dist(player.x, player.y, mino.x, mino.y);
+    const heartT = 1 - Math.min(1, heartDist / (CELL * 14));
+    const bps = 0.1 + heartT * 3.4;
+    heartPhase += bps * dt;
+    if (heartPhase >= 1) heartPhase -= 1;
+
+    // Start fading to black when player is near the end of the path
+    if (anim.playerPathPos >= pathLen - 3) {
+      anim.fadeAlpha = Math.min(1, (anim.fadeAlpha || 0) + dt * 2.0);
+    }
+    // Hold on black briefly, then transition to PLAYING and begin fade-in
+    if ((anim.fadeAlpha || 0) >= 1) {
+      anim.blackHold = (anim.blackHold || 0) + dt;
+      if (anim.blackHold >= 0.7) {
+        applySpawns();
+        zoom = 1;
+        gameState = 'PLAYING';
+        introAnim = null;
+        screenFadeAlpha = 1;
+      }
+    }
+  }
+
   function update(dt){
+    if (gameState === 'INTRO') { updateIntro(dt); return; }
     if(gameState!=='PLAYING' && gameState!=='TRIVIA') return;
 
     if(gameState==='PLAYING'){
@@ -492,6 +600,7 @@
 
     if(theseusTimer>0) theseusTimer-=dt;
     if(killFlashTimer>0) killFlashTimer-=dt;
+    if(screenFadeAlpha>0) screenFadeAlpha=Math.max(0, screenFadeAlpha-dt*2.0);
 
     if(triviaState && triviaState.answered && triviaState.resultTimer > 0){
       triviaState.resultTimer -= dt;
@@ -582,6 +691,62 @@
         ? Math.max(target, minimapAlpha - speed * dt)
         : Math.min(target, minimapAlpha + speed * dt);
     }
+  }
+
+  function drawIntroOverlay() {
+    if (!introAnim) return;
+    const a = introAnim.textAlpha;
+    const progress = introAnim.playerPathPos / introAnim.playerPath.length;
+    ctx.textAlign = 'center';
+
+    // Title banner at top
+    const ty = QUEUE_H + Math.floor(GAME_H * 0.075);
+    ctx.fillStyle = `rgba(10, 20, 38, ${a * 0.78})`;
+    ctx.beginPath(); ctx.roundRect(W * 0.05, ty - 26, W * 0.90, 38, 10); ctx.fill();
+    ctx.fillStyle = `rgba(213, 230, 237, ${a})`;
+    ctx.font = `bold ${Math.floor(W * 0.042)}px Georgia,serif`;
+    ctx.fillText('— THE LABYRINTH —', W / 2, ty);
+
+    // Phase-based instruction near bottom
+    const elapsed = introAnim.elapsed;
+    let line, color;
+    if (elapsed < 3.5) {
+      line  = 'The Minotaur hunts you through the maze...';
+      color = `rgba(204, 34, 0, ${a})`;
+    } else if (elapsed < 7.0) {
+      line  = 'Your heartbeat reveals how close it is!';
+      color = `rgba(252, 176, 117, ${a})`;
+    } else {
+      line  = 'The farther you run, the calmer your heart...';
+      color = `rgba(213, 230, 237, ${a})`;
+    }
+    // Phase text drawn in the bottom light-blue controls area, wrapped across multiple lines
+    const fontSize = Math.floor(W * 0.076);
+    const lineH    = Math.floor(fontSize * 1.28);
+    const maxW     = W * 0.84;
+    ctx.fillStyle = color;
+    ctx.font = `bold ${fontSize}px Georgia,serif`;
+
+    // Measure how many lines the text will produce so we can vertically centre it
+    const words = line.split(' ');
+    const lines = [];
+    let cur = '';
+    for (const w of words) {
+      const test = cur ? cur + ' ' + w : w;
+      if (ctx.measureText(test).width > maxW && cur) { lines.push(cur); cur = w; }
+      else cur = test;
+    }
+    if (cur) lines.push(cur);
+
+    const blockH  = lines.length * lineH;
+    const areaTop = GAME_H;
+    const areaH   = CTRL_H;
+    let textY = areaTop + (areaH - blockH) / 2 + lineH * 0.8;
+    for (const l of lines) { ctx.fillText(l, W / 2, textY); textY += lineH; }
+
+    ctx.fillStyle = `rgba(28, 53, 94, ${a * 0.55})`;
+    ctx.font = `italic ${Math.floor(W * 0.030)}px Georgia,serif`;
+    ctx.fillText('Tap anywhere to skip', W / 2, areaTop + areaH * 0.92);
   }
 
   function drawTrap(x, y) {
@@ -1054,7 +1219,9 @@
 
     const halfW = W / (2 * zoom), halfH = GAME_H / (2 * zoom);
     const camX = Math.max(halfW, Math.min(MAZE_W - halfW, player.x));
-    const camY = Math.max((GAME_H/2 - QUEUE_H) / zoom, Math.min(MAZE_H - halfH, player.y));
+    // During intro use strict halfH clamp so the camera never shows outside the maze
+    const camYMin = gameState === 'INTRO' ? halfH : (GAME_H/2 - QUEUE_H) / zoom;
+    const camY = Math.max(camYMin, Math.min(MAZE_H - halfH, player.y));
 
     ctx.fillStyle='#14253D';ctx.fillRect(0,0,W,GAME_H);
 
@@ -1066,7 +1233,17 @@
 
     drawMaze(camX,camY);
 
-    for (const t of traps) { if (!t.cleared) drawTrap(t.x, t.y); }
+    {
+      const pathSet = introAnim ? new Set(introAnim.playerPath) : null;
+      for (const t of traps) {
+        if (t.cleared) continue;
+        if (pathSet) {
+          const {r, c} = worldToCell(t.x, t.y);
+          if (pathSet.has(idx(r, c))) continue;
+        }
+        drawTrap(t.x, t.y);
+      }
+    }
 
     {
       ctx.fillStyle='#5C3317';
@@ -1164,14 +1341,23 @@
     }
 
     ctx.fillStyle='#D5E6ED';ctx.fillRect(0,GAME_H,W,CTRL_H);
-    drawControls();
+    if (gameState !== 'INTRO') drawControls();
 
     if(gameState==='WIN')  drawEndScreen(true);
     if(gameState==='DEAD') drawEndScreen(false);
     if(gameState==='TRIVIA') drawTriviaOverlay();
+    if(gameState==='INTRO') drawIntroOverlay();
+
+    // Black overlay for intro fade-out and gameplay fade-in
+    const introFade = introAnim ? (introAnim.fadeAlpha || 0) : 0;
+    const totalFade = Math.max(introFade, screenFadeAlpha);
+    if (totalFade > 0) {
+      ctx.fillStyle = `rgba(0,0,0,${totalFade})`;
+      ctx.fillRect(0, 0, W, H);
+    }
 
     drawQueueBar();
-    
+
     if (gameState === 'PLAYING') {
       if (player.isTheseus && !minoKilled) drawMinimap();
       drawFloatingPauseButton();
