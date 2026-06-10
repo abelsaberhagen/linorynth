@@ -56,8 +56,15 @@
   resizeAppFrame();
 
   const QUEUE_H = Math.max(24, Math.floor(H * 0.034));
-  const GAME_H = Math.floor(H * 0.7525);
-  const CTRL_H = H - GAME_H;
+  // Bottom strip height reserved for cutscene phase text (intro/Ariadne chase).
+  const GAME_H_CUTSCENE = Math.floor(H * 0.7525);
+  const GAME_H_FULL = H;
+  let GAME_H = GAME_H_CUTSCENE;
+  let CTRL_H = H - GAME_H;
+  function updateLayout(){
+    GAME_H = (gameState==='INTRO' || gameState==='ARIADNE') ? GAME_H_CUTSCENE : GAME_H_FULL;
+    CTRL_H = H - GAME_H;
+  }
   const CELL = Math.floor(W / 11);
   const COLS = 23, ROWS = 23;
   const MAZE_W = COLS * CELL, MAZE_H = ROWS * CELL;
@@ -430,11 +437,14 @@
 
   function handleInteraction(x, y, isTouch, touchId) {
     if (gameState === 'INTRO') {
-      applySpawns();
-      zoom = 1;
-      gameState = 'PLAYING';
-      introAnim = null;
-      screenFadeAlpha = 0;
+      const skipBtn = getIntroSkipButton();
+      if (x >= skipBtn.x && x <= skipBtn.x + skipBtn.w && y >= skipBtn.y && y <= skipBtn.y + skipBtn.h) {
+        applySpawns();
+        zoom = 1;
+        gameState = 'PLAYING';
+        introAnim = null;
+        screenFadeAlpha = 0;
+      }
       return;
     }
     if (gameState === 'TRIVIA') {
@@ -924,9 +934,19 @@
     let textY = areaTop + (areaH - blockH) / 2 + lineH * 0.8;
     for (const l of lines) { ctx.fillText(l, W / 2, textY); textY += lineH; }
 
-    ctx.fillStyle = `rgba(28, 53, 94, ${a * 0.55})`;
-    ctx.font = `italic ${Math.floor(W * 0.030)}px Georgia,serif`;
-    ctx.fillText('Tap anywhere to skip', W / 2, areaTop + areaH * 0.92);
+    const skipBtn = getIntroSkipButton();
+    ctx.fillStyle = `rgba(252, 176, 117, ${a})`;
+    ctx.beginPath(); ctx.roundRect(skipBtn.x, skipBtn.y, skipBtn.w, skipBtn.h, 10); ctx.fill();
+    ctx.fillStyle = `rgba(28, 53, 94, ${a})`;
+    ctx.font = `bold ${Math.floor(W * 0.030)}px Georgia,serif`;
+    ctx.fillText('SKIP', skipBtn.x + skipBtn.w / 2, skipBtn.y + skipBtn.h / 2 + Math.floor(W * 0.030 * 0.35));
+  }
+
+  function getIntroSkipButton() {
+    const btnW = W * 0.22, btnH = Math.floor(CTRL_H * 0.22);
+    const x = W - btnW - 16;
+    const y = GAME_H - btnH - 16;
+    return {x, y, w: btnW, h: btnH};
   }
 
   function drawTrap(x, y) {
@@ -1613,7 +1633,7 @@
       queueTimer-=dt;
       if(queueTimer<=0){ queuePos--; queueTimer=15+Math.random()*25; if(queuePos===1)triggerAriadne(); }
     }
-    update(dt); render(); console.log(player.x.toFixed(1), player.y.toFixed(1)); requestAnimationFrame(loop);
+    updateLayout(); update(dt); render(); requestAnimationFrame(loop);
   }
   requestAnimationFrame(ts=>{lastTime=ts;requestAnimationFrame(loop);});
 </script>
