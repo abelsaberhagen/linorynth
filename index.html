@@ -229,8 +229,12 @@
   let screenFadeAlpha = 0;
   let threadPath=[], threadPlayerCell={r:-1,c:-1};
   let threadItemX=0, threadItemY=0, threadCollected=false;
-  let minimapAlpha = 0.8;
-  let zoom = 1.0; /*, pinchActive = false, pinchStartDist = 1, pinchStartZoom = 1;*/
+  let minimapAlpha = 0.9;
+  let zoom = 1.0;
+  let ariadne = {x:0, y:0, r:PLAYER_R, path:[], pathTimer:0};
+  let ariadnePhase = null; // null | 'approach' | 'escape'
+  let escapeWalkPhase = 0;
+  let ariadneTrail = [], playerTrailIdx = 0; /*, pinchActive = false, pinchStartDist = 1, pinchStartZoom = 1;*/
 
   let pauseImgLoaded = false;
   let instImgLoaded = false;
@@ -269,18 +273,15 @@
     mino.x=minoSpawn.x; mino.y=minoSpawn.y; mino.path=[]; mino.pathTimer=0;
     SWORD_X=swordSpawn.x; SWORD_Y=swordSpawn.y; swordCollected=false;
     minoKilled=false; killFlashTimer=0; threadPath=[]; threadPlayerCell={r:-1,c:-1};
-    threadCollected=false; threadItemX=0; threadItemY=0; minimapAlpha=0.8;
+    threadCollected=false; threadItemX=0; threadItemY=0; minimapAlpha=0.9;
+    ariadnePhase=null; ariadne.path=[]; ariadne.pathTimer=0; escapeWalkPhase=0; ariadneTrail=[]; playerTrailIdx=0;
   }
   applySpawns();
   startIntro();
 
-  const joy = {
-    baseX:W*0.5, baseY:GAME_H+CTRL_H*0.5,
-    x:W*0.5,     y:GAME_H+CTRL_H*0.5,
-    outerR:CTRL_H*0.38, innerR:CTRL_H*0.17,
-    active:false, touchId:null, dx:0, dy:0,
-  };
-  let queuePos = Math.floor(Math.random() * 21) + 25;
+  const dpad = {up:false,down:false,left:false,right:false};
+  const dpadTouches = new Map();
+  let queuePos = Math.floor(Math.random() * 21) + 20;
   let queueTimer = 15 + Math.random() * 25;
 
   function cellWalls(r, c) {
@@ -317,12 +318,12 @@
       const nr=r+dr,nc=c+dc;
       if(nr<0||nr>=ROWS||nc<0||nc>=COLS) continue;
       for(const[x1,y1,x2,y2] of cellWalls(nr,nc)){
-        if(minoKilled && ent===player && isDoorWall(x1,y1,x2,y2)) continue;
+        if((minoKilled || ariadnePhase==='escape') && isDoorWall(x1,y1,x2,y2)) continue;
         const col=circleVsSeg(ent.x,ent.y,ent.r,x1,y1,x2,y2);
         if(col){ent.x-=col.nx*col.pen;ent.y-=col.ny*col.pen;}
       }
     }
-    const canExit=minoKilled && ent===player && inDoorZone(ent);
+    const canExit=(minoKilled || ariadnePhase==='escape') && inDoorZone(ent);
     const {side}=spawnRoom;
     ent.x=Math.max(canExit&&side==='left'  ?-ent.r*4:ent.r, Math.min(canExit&&side==='right' ?MAZE_W+ent.r*4:MAZE_W-ent.r, ent.x));
     ent.y=Math.max(canExit&&side==='top'   ?-ent.r*4:ent.r, Math.min(canExit&&side==='bottom'?MAZE_H+ent.r*4:MAZE_H-ent.r, ent.y));
@@ -332,13 +333,24 @@
     const rect=canvas.getBoundingClientRect();
     return{x:(cx-rect.left)*(W/rect.width),y:(cy-rect.top)*(H/rect.height)};
   }
-  function startJoy(x,y,id){joy.active=true;joy.touchId=id;joy.x=joy.baseX;joy.y=joy.baseY;joy.dx=0;joy.dy=0;}
-  function moveJoy(x,y){
-    const dx=x-joy.baseX,dy=y-joy.baseY,d=Math.hypot(dx,dy);
-    if(d>joy.outerR){joy.x=joy.baseX+dx/d*joy.outerR;joy.y=joy.baseY+dy/d*joy.outerR;}else{joy.x=x;joy.y=y;}
-    joy.dx=(joy.x-joy.baseX)/joy.outerR;joy.dy=(joy.y-joy.baseY)/joy.outerR;
+  function getDpadLayout(){
+    const bs=Math.floor(CTRL_H*0.27), gap=50;
+    const cx=W/2, cy=GAME_H+CTRL_H/2;
+    return {bs,
+      up:   {x:cx-bs/2,         y:cy-bs-gap/2, w:bs,h:bs},
+      down: {x:cx-bs/2,         y:cy+gap/2,    w:bs,h:bs},
+      left: {x:cx-bs-gap/2,      y:cy-bs/2,     w:bs,h:bs},
+      right:{x:cx+gap/2,         y:cy-bs/2,     w:bs,h:bs},
+    };
   }
-  function releaseJoy(){joy.active=false;joy.touchId=null;joy.x=joy.baseX;joy.y=joy.baseY;joy.dx=0;joy.dy=0;}
+  function hitDpad(x,y){
+    const l=getDpadLayout();
+    for(const d of ['up','down','left','right']){const b=l[d];if(x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h)return d;}
+    return null;
+  }
+  function startDpad(x,y,id){const d=hitDpad(x,y);if(d){dpad[d]=true;dpadTouches.set(id,d);}}
+  function endDpad(id){const d=dpadTouches.get(id);if(d!==undefined){dpad[d]=false;dpadTouches.delete(id);}}
+  function releaseJoy(){dpad.up=false;dpad.down=false;dpad.left=false;dpad.right=false;dpadTouches.clear();}
 
   function restartGame(){initSpawns();initTraps();applySpawns();theseusTimer=0;gameState='PLAYING';triviaState=null;releaseJoy();}
 
@@ -440,12 +452,8 @@
       }
 
       if (y > GAME_H) {
-        if (isTouch) {
-          if (!joy.active) startJoy(x, y, touchId);
-        } else {
-          mouseDown = true;
-          startJoy(x, y, null);
-        }
+        if (isTouch) { startDpad(x, y, touchId); }
+        else { mouseDown=true; startDpad(x, y, 'mouse'); }
       }
     } else {
       handleEndScreenClick(x, y);
@@ -462,8 +470,7 @@
     //   return;
     // }
     // if(!pinchActive){
-      const{x,y}=getPos(e.changedTouches[0].clientX,e.changedTouches[0].clientY);
-      handleInteraction(x, y, true, e.changedTouches[0].identifier);
+      for(const t of e.changedTouches){const{x,y}=getPos(t.clientX,t.clientY);handleInteraction(x,y,true,t.identifier);}
     // }
   },{passive:false});
   canvas.addEventListener('touchmove',e=>{
@@ -473,12 +480,11 @@
     //   zoom=Math.max(minZoom, Math.min(1.0, pinchStartZoom*pinchDist(e)/pinchStartDist));
     //   return;
     // }
-    for(const t of e.changedTouches)
-      if(t.identifier===joy.touchId){const{x,y}=getPos(t.clientX,t.clientY);moveJoy(x,y);}
+    // dpad has no drag behaviour
   },{passive:false});
   canvas.addEventListener('touchend',e=>{
     // if(pinchActive && e.touches.length<2) pinchActive=false;
-    for(const t of e.changedTouches)if(t.identifier===joy.touchId)releaseJoy();
+    for(const t of e.changedTouches)endDpad(t.identifier);
   });
 
   let mouseDown=false;
@@ -486,8 +492,7 @@
     const{x,y}=getPos(e.clientX,e.clientY);
     handleInteraction(x, y, false, null);
   });
-  canvas.addEventListener('mousemove',e=>{if(!mouseDown)return;const{x,y}=getPos(e.clientX,e.clientY);moveJoy(x,y);});
-  window.addEventListener('mouseup',()=>{mouseDown=false;releaseJoy();});
+    window.addEventListener('mouseup',()=>{mouseDown=false;endDpad('mouse');});
   // canvas.addEventListener('wheel',e=>{
   //   e.preventDefault();
   //   const minZoom=Math.min(W/MAZE_W, GAME_H/MAZE_H);
@@ -499,10 +504,127 @@
     keys[e.key]=true; if(e.key===' ')e.preventDefault();
     if(gameState==='INTRO') { applySpawns(); zoom=1; gameState='PLAYING'; introAnim=null; screenFadeAlpha=0; return; }
     if(gameState==='PAUSED') { gameState = 'PLAYING'; return; }
-    if(gameState!=='PLAYING'&&(e.key===' '||e.key==='Enter'))restartGame();
+    if(gameState!=='PLAYING'&&gameState!=='ARIADNE'&&(e.key===' '||e.key==='Enter'))restartGame();
   });
   window.addEventListener('keyup',e=>{keys[e.key]=false;});
 
+  const PLAYER_SPEED=CELL*3.8, MINO_SPEED=CELL*2.1, ARIADNE_SPEED=CELL*3.2;
+
+  function triggerAriadne(){
+    gameState='ARIADNE'; ariadnePhase='approach'; releaseJoy();
+    threadCollected=true; threadPlayerCell={r:-1,c:-1};
+
+    const halfW=W/(2*zoom), halfH=GAME_H/(2*zoom);
+    const camX=Math.max(halfW,Math.min(MAZE_W-halfW,player.x));
+    const camY=Math.max(halfH,Math.min(MAZE_H-halfH,player.y));
+
+    const cL=Math.floor((camX-halfW)/CELL), cR=Math.ceil((camX+halfW)/CELL);
+    const rT=Math.floor((camY-halfH)/CELL), rB=Math.ceil((camY+halfH)/CELL);
+
+    const{r:pr,c:pc}=worldToCell(player.x,player.y);
+    const dmap=bfsDist(pr,pc);
+    const maxSteps=Math.floor(ARIADNE_SPEED*3/CELL);
+
+    const camScore=({r,c})=>Math.max(0,cL-c,c-cR)+Math.max(0,rT-r,r-rB);
+    const candidates=[];
+    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+      const d=dmap[idx(r,c)];
+      if(d<1||d>maxSteps) continue;
+      if(camScore({r,c})>0) candidates.push({r,c,d});
+    }
+
+    let spawnR,spawnC;
+    if(candidates.length){
+      candidates.sort((a,b)=>camScore(a)-camScore(b));
+      const minScore=camScore(candidates[0]);
+      const pool=candidates.filter(x=>camScore(x)<=minScore+1);
+      const pick=pool[Math.floor(Math.random()*pool.length)];
+      spawnR=pick.r; spawnC=pick.c;
+    } else {
+      let best=null,bestD=Infinity;
+      for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+        const d=dmap[idx(r,c)];
+        if(d>=1&&camScore({r,c})>0&&d<bestD){bestD=d;best={r,c};}
+      }
+      spawnR=best?best.r:Math.max(0,pr-1); spawnC=best?best.c:pc;
+    }
+
+    const cc=cellCenter(spawnR,spawnC);
+    ariadne.x=cc.x; ariadne.y=cc.y;
+    ariadne.path=bfs(spawnR,spawnC,pr,pc); ariadne.pathTimer=0;
+  }
+
+  function updateAriadne(dt){
+    const ac=worldToCell(ariadne.x,ariadne.y);
+    if(ac.r!==threadPlayerCell.r||ac.c!==threadPlayerCell.c){
+      threadPlayerCell=ac;
+      threadPath=bfs(ac.r,ac.c,spawnRoom.r0+1,spawnRoom.c0+1);
+    }
+    if(ariadnePhase==='approach'){
+      ariadne.pathTimer-=dt;
+      if(ariadne.pathTimer<=0){
+        ariadne.pathTimer=0.7;
+        const{r,c}=worldToCell(ariadne.x,ariadne.y);
+        const{r:pr,c:pc}=worldToCell(player.x,player.y);
+        ariadne.path=bfs(r,c,pr,pc);
+      }
+      if(ariadne.path.length>1){
+        const ni=ariadne.path[1],tgt=cellCenter(Math.floor(ni/COLS),ni%COLS);
+        const dx=tgt.x-ariadne.x,dy=tgt.y-ariadne.y,d=Math.hypot(dx,dy);
+        if(d>1){ariadne.x+=dx/d*ARIADNE_SPEED*dt;ariadne.y+=dy/d*ARIADNE_SPEED*dt;}
+        if(d<CELL*0.2) ariadne.path.shift();
+        escapeWalkPhase+=dt*2.2;
+      }
+      resolveWalls(ariadne);
+      if(dist(ariadne.x,ariadne.y,player.x,player.y)<CELL*1.5){
+        ariadnePhase='escape';
+        const{r,c}=worldToCell(player.x,player.y);
+        ariadne.path=bfs(r,c,spawnRoom.r0+1,spawnRoom.c0+1);
+        ariadne.pathTimer=0; escapeWalkPhase=0;
+        ariadneTrail=[{x:ariadne.x,y:ariadne.y}]; playerTrailIdx=0;
+      }
+    } else if(ariadnePhase==='escape'){
+      ariadne.pathTimer-=dt;
+      if(ariadne.pathTimer<=0){
+        ariadne.pathTimer=0.7;
+        const{r,c}=worldToCell(ariadne.x,ariadne.y);
+        ariadne.path=bfs(r,c,spawnRoom.r0+1,spawnRoom.c0+1);
+      }
+      if(ariadne.path.length>1){
+        const ni=ariadne.path[1],tgt=cellCenter(Math.floor(ni/COLS),ni%COLS);
+        const adx=tgt.x-ariadne.x,ady=tgt.y-ariadne.y,ad=Math.hypot(adx,ady);
+        if(ad>1){ariadne.x+=adx/ad*ARIADNE_SPEED*dt;ariadne.y+=ady/ad*ARIADNE_SPEED*dt;}
+        if(ad<CELL*0.2) ariadne.path.shift();
+      } else {
+        const{side:es}=spawnRoom;
+        if(es==='top')    ariadne.y-=ARIADNE_SPEED*dt;
+        if(es==='bottom') ariadne.y+=ARIADNE_SPEED*dt;
+        if(es==='left')   ariadne.x-=ARIADNE_SPEED*dt;
+        if(es==='right')  ariadne.x+=ARIADNE_SPEED*dt;
+      }
+      if(ariadne.x>=0&&ariadne.x<=MAZE_W&&ariadne.y>=0&&ariadne.y<=MAZE_H) resolveWalls(ariadne);
+      const lastTp=ariadneTrail[ariadneTrail.length-1];
+      if(!lastTp||dist(ariadne.x,ariadne.y,lastTp.x,lastTp.y)>=CELL*0.3)
+        ariadneTrail.push({x:ariadne.x,y:ariadne.y});
+      if(playerTrailIdx<ariadneTrail.length){
+        const twp=ariadneTrail[playerTrailIdx];
+        const pdx=twp.x-player.x,pdy=twp.y-player.y,pd=Math.hypot(pdx,pdy);
+        if(pd<CELL*0.25) playerTrailIdx++;
+        else{
+          player.x+=pdx/pd*ARIADNE_SPEED*dt;player.y+=pdy/pd*ARIADNE_SPEED*dt;
+          if(player.x>=0&&player.x<=MAZE_W&&player.y>=0&&player.y<=MAZE_H) resolveWalls(player);
+        }
+      }
+      escapeWalkPhase+=dt*2.5;
+      const{side}=spawnRoom;
+      if(
+        (side==='top'    && player.y<-PLAYER_R)||
+        (side==='bottom' && player.y>MAZE_H+PLAYER_R)||
+        (side==='left'   && player.x<-PLAYER_R)||
+        (side==='right'  && player.x>MAZE_W+PLAYER_R)
+      ) gameState='WIN';
+    }
+  }
   const PLAYER_SPEED=CELL*3.8, MINO_SPEED=CELL*2.1;
 
   function updateIntro(dt) {
@@ -567,9 +689,20 @@
   }
 
   function update(dt){
+    if(gameState==='ARIADNE'){updateAriadne(dt);return;}
+    if(gameState!=='PLAYING') return;
     if (gameState === 'INTRO') { updateIntro(dt); return; }
     if(gameState!=='PLAYING' && gameState!=='TRIVIA') return;
 
+    let kx=0,ky=0;
+    if(keys['ArrowLeft']||keys['a']||keys['A']||dpad.left)kx-=1;
+    if(keys['ArrowRight']||keys['d']||keys['D']||dpad.right)kx+=1;
+    if(keys['ArrowUp']||keys['w']||keys['W']||dpad.up)ky-=1;
+    if(keys['ArrowDown']||keys['s']||keys['S']||dpad.down)ky+=1;
+    const kl=Math.hypot(kx,ky); if(kl>0){kx/=kl;ky/=kl;}
+    player.x+=kx*PLAYER_SPEED*dt;
+    player.y+=ky*PLAYER_SPEED*dt;
+    resolveWalls(player);
     if(gameState==='PLAYING'){
       let kx=0,ky=0;
       if(keys['ArrowLeft']||keys['a']||keys['A'])kx-=1;
@@ -684,8 +817,12 @@
       const mmX = 8, mmY = GAME_H - mmHeight - 8;
       const psx = (player.x - camX) * zoom + W / 2;
       const psy = (player.y - camY) * zoom + GAME_H / 2;
-      const overlaps = psx >= mmX && psx <= mmX + mmWidth && psy >= mmY && psy <= mmY + mmHeight;
-      const target = overlaps ? 0.2 : 0.8;
+      const msx = (mino.x - camX) * zoom + W / 2;
+      const msy = (mino.y - camY) * zoom + GAME_H / 2;
+      const playerOverlaps = psx >= mmX - 20 && psx <= mmX + mmWidth && psy >= mmY && psy <= mmY + mmHeight;
+      const minoOverlaps   = msx >= mmX && msx <= mmX + mmWidth && msy >= mmY && msy <= mmY + mmHeight;
+      const overlaps = playerOverlaps || minoOverlaps || (player.x < 400 && player.y > 550);
+      const target = overlaps ? 0 : 0.9;
       const speed = 0.6 / 0.2;
       minimapAlpha = overlaps
         ? Math.max(target, minimapAlpha - speed * dt)
@@ -906,12 +1043,26 @@
     }
   }
 
-  function drawStickFigure(x,y,s,color){
+  function drawStickFigure(x,y,s,color,walkPhase=0){
+    const sw=Math.sin(walkPhase*Math.PI*2)*0.42*s;
     ctx.strokeStyle=color;ctx.lineWidth=Math.max(1.5,s*0.11);ctx.lineCap='round';
     ctx.beginPath();ctx.arc(x,y-s*1.85,s*0.52,0,Math.PI*2);ctx.stroke();
     ctx.beginPath();ctx.moveTo(x,y-s*1.33);ctx.lineTo(x,y+s*0.55);ctx.stroke();
     ctx.beginPath();ctx.moveTo(x-s*0.72,y-s*0.58);ctx.lineTo(x+s*0.72,y-s*0.58);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(x,y+s*0.55);ctx.lineTo(x-s*0.52,y+s*1.5);ctx.moveTo(x,y+s*0.55);ctx.lineTo(x+s*0.52,y+s*1.5);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x,y+s*0.55);ctx.lineTo(x-s*0.52+sw,y+s*1.5);ctx.moveTo(x,y+s*0.55);ctx.lineTo(x+s*0.52-sw,y+s*1.5);ctx.stroke();
+  }
+  function drawAriadne(x,y,s,walkPhase){
+    const hx=x, hy=y-s*1.85;
+    ctx.save();
+    ctx.strokeStyle='#6B3A2A'; ctx.lineWidth=Math.max(2,s*0.14); ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(hx-s*0.35,hy-s*0.35);
+    ctx.bezierCurveTo(hx-s*0.85,hy+s*0.2,hx-s*0.95,hy+s*0.9,hx-s*0.65,hy+s*1.55); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(hx-s*0.1,hy-s*0.5);
+    ctx.bezierCurveTo(hx-s*0.3,hy+s*0.4,hx-s*0.5,hy+s*1.0,hx-s*0.4,hy+s*1.65); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(hx+s*0.35,hy-s*0.35);
+    ctx.bezierCurveTo(hx+s*0.75,hy+s*0.1,hx+s*0.7,hy+s*0.8,hx+s*0.5,hy+s*1.5); ctx.stroke();
+    ctx.restore();
+    drawStickFigure(x,y,s,'#FCB075',walkPhase);
   }
   function drawSwordOnFigure(x,y,s){
     const sw=s*0.5,ox=x+s*0.88,oy=y-s*0.45;
@@ -1022,13 +1173,25 @@
   }
 
   function drawControls(){
-    ctx.strokeStyle='rgba(28, 53, 94, 0.15)';ctx.lineWidth=1;
+    ctx.strokeStyle='rgba(28,53,94,0.15)';ctx.lineWidth=1;
     ctx.beginPath();ctx.moveTo(0,GAME_H);ctx.lineTo(W,GAME_H);ctx.stroke();
-    ctx.beginPath();ctx.arc(joy.baseX,joy.baseY,joy.outerR,0,Math.PI*2);
-    ctx.strokeStyle='rgba(28, 53, 94, 0.2)';ctx.lineWidth=2.5;ctx.stroke();
-    ctx.fillStyle='rgba(255,255,255,0.25)';ctx.fill();
-    ctx.beginPath();ctx.arc(joy.x,joy.y,joy.innerR,0,Math.PI*2);
-    ctx.fillStyle='#1C355E';ctx.fill();
+    const l=getDpadLayout(), bs=l.bs;
+    for(const dir of ['up','down','left','right']){
+      const b=l[dir], pressed=dpad[dir];
+      const rad=Math.min(b.w,b.h)*0.18;
+      ctx.beginPath();ctx.roundRect(b.x,b.y,b.w,b.h,rad);
+      ctx.fillStyle=pressed?'rgba(28,53,94,0.18)':'rgba(28,53,94,0.52)';
+      ctx.fill();
+      ctx.strokeStyle='rgba(28,53,94,0.65)';ctx.lineWidth=1.5;ctx.stroke();
+      const cx=b.x+b.w/2, cy=b.y+b.h/2, as=bs*0.27;
+      ctx.fillStyle=pressed?'rgba(213,230,237,0.4)':'rgba(213,230,237,0.9)';
+      ctx.beginPath();
+      if(dir==='up'){   ctx.moveTo(cx,cy-as);ctx.lineTo(cx+as,cy+as*0.62);ctx.lineTo(cx-as,cy+as*0.62);}
+      else if(dir==='down'){ ctx.moveTo(cx,cy+as);ctx.lineTo(cx-as,cy-as*0.62);ctx.lineTo(cx+as,cy-as*0.62);}
+      else if(dir==='left'){ ctx.moveTo(cx-as,cy);ctx.lineTo(cx+as*0.62,cy-as);ctx.lineTo(cx+as*0.62,cy+as);}
+      else{              ctx.moveTo(cx+as,cy);ctx.lineTo(cx-as*0.62,cy-as);ctx.lineTo(cx-as*0.62,cy+as);}
+      ctx.closePath();ctx.fill();
+    }
   }
 
   function drawQueueBar(){
@@ -1250,31 +1413,34 @@
       const {side:ds,r0:dr,c0:dc}=spawnRoom;
       const dx=dc*CELL, dy=dr*CELL;
       const off=CELL*0.18, thick=CELL*0.3, post=CELL*0.14;
+      const doorOpen=minoKilled||ariadnePhase==='escape';
       if(ds==='top'){
-        if(!minoKilled){ ctx.fillRect(dx,-off,2*CELL,thick); }
+        if(!doorOpen){ ctx.fillRect(dx,-off,2*CELL,thick); }
         else { ctx.fillRect(dx,-off,post,thick); ctx.fillRect(dx+2*CELL-post,-off,post,thick); }
       } else if(ds==='bottom'){
-        if(!minoKilled){ ctx.fillRect(dx,MAZE_H+off-thick,2*CELL,thick); }
+        if(!doorOpen){ ctx.fillRect(dx,MAZE_H+off-thick,2*CELL,thick); }
         else { ctx.fillRect(dx,MAZE_H+off-thick,post,thick); ctx.fillRect(dx+2*CELL-post,MAZE_H+off-thick,post,thick); }
       } else if(ds==='left'){
-        if(!minoKilled){ ctx.fillRect(-off,dy,thick,2*CELL); }
+        if(!doorOpen){ ctx.fillRect(-off,dy,thick,2*CELL); }
         else { ctx.fillRect(-off,dy,thick,post); ctx.fillRect(-off,dy+2*CELL-post,thick,post); }
       } else {
-        if(!minoKilled){ ctx.fillRect(MAZE_W+off-thick,dy,thick,2*CELL); }
+        if(!doorOpen){ ctx.fillRect(MAZE_W+off-thick,dy,thick,2*CELL); }
         else { ctx.fillRect(MAZE_W+off-thick,dy,thick,post); ctx.fillRect(MAZE_W+off-thick,dy+2*CELL-post,thick,post); }
       }
     }
 
     if(!swordCollected) drawSwordItem(SWORD_X,SWORD_Y,CELL*0.30);
     if(minoKilled && !threadCollected) drawThreadItem(threadItemX, threadItemY);
-    if(minoKilled){
-      ctx.strokeStyle='rgba(150,50,50,0.55)';ctx.lineWidth=3;ctx.lineCap='round';
-      ctx.beginPath();
-      ctx.moveTo(mino.x-CELL*0.28,mino.y-CELL*0.28);ctx.lineTo(mino.x+CELL*0.28,mino.y+CELL*0.28);
-      ctx.moveTo(mino.x+CELL*0.28,mino.y-CELL*0.28);ctx.lineTo(mino.x-CELL*0.28,mino.y+CELL*0.28);
-      ctx.stroke();
-    } else {
-      drawMinotaur(mino.x,mino.y,CELL*0.38);
+    if(!ariadnePhase){
+      if(minoKilled){
+        ctx.strokeStyle='rgba(150,50,50,0.55)';ctx.lineWidth=3;ctx.lineCap='round';
+        ctx.beginPath();
+        ctx.moveTo(mino.x-CELL*0.28,mino.y-CELL*0.28);ctx.lineTo(mino.x+CELL*0.28,mino.y+CELL*0.28);
+        ctx.moveTo(mino.x+CELL*0.28,mino.y-CELL*0.28);ctx.lineTo(mino.x-CELL*0.28,mino.y+CELL*0.28);
+        ctx.stroke();
+      } else {
+        drawMinotaur(mino.x,mino.y,CELL*0.38);
+      }
     }
     if(!minoKilled){
       const hAlpha = 0.7 * (1 - heartPhase);
@@ -1288,7 +1454,7 @@
       ctx.lineWidth = 2;
       ctx.stroke();
     }
-    if (minoKilled && threadCollected && threadPath.length > 1) {
+    if (((minoKilled && threadCollected) || ariadnePhase) && threadPath.length > 1) {
       const {side: ts, r0: tr, c0: tc} = spawnRoom;
       let exitX, exitY;
       if (ts === 'top')    { exitX = (tc + 1) * CELL; exitY = -CELL; }
@@ -1303,7 +1469,7 @@
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       ctx.beginPath();
-      ctx.moveTo(player.x, player.y);
+      ctx.moveTo(ariadnePhase ? ariadne.x : player.x, ariadnePhase ? ariadne.y : player.y);
       for (let i = 1; i < threadPath.length; i++) {
         const ci = threadPath[i];
         const {x, y} = cellCenter(Math.floor(ci / COLS), ci % COLS);
@@ -1313,7 +1479,8 @@
       ctx.stroke();
       ctx.restore();
     }
-    drawStickFigure(player.x,player.y,CELL*0.38,'#D5E6ED');
+    if(ariadnePhase) drawAriadne(ariadne.x,ariadne.y,CELL*0.38,escapeWalkPhase);
+    drawStickFigure(player.x,player.y,CELL*0.38,'#D5E6ED',ariadnePhase==='escape'?escapeWalkPhase:0);
     if(player.isTheseus) drawSwordOnFigure(player.x,player.y,CELL*0.38);
 
     ctx.restore();
@@ -1340,7 +1507,18 @@
       ctx.fillText('Now exit the maze!',W/2,by+bh*0.72);
     }
 
+    if(ariadnePhase==='approach'){
+      const bx=W*0.05,by=GAME_H*0.28,bw=W*0.9,bh=GAME_H*0.24;
+      ctx.fillStyle='rgba(28, 53, 94, 0.88)';ctx.fillRect(bx,by,bw,bh);
+      ctx.fillStyle='#FCB075';ctx.textAlign='center';
+      ctx.font=`bold ${Math.floor(W*0.044)}px Georgia,serif`;
+      ctx.fillText("You're now at the front of the line!",W/2,by+bh*0.38);
+      ctx.font=`${Math.floor(W*0.038)}px Georgia,serif`;
+      ctx.fillText('Ariadne has come to save you!',W/2,by+bh*0.72);
+    }
+
     ctx.fillStyle='#D5E6ED';ctx.fillRect(0,GAME_H,W,CTRL_H);
+    if(gameState==='PLAYING') drawControls();
     if (gameState !== 'INTRO') drawControls();
 
     if(gameState==='WIN')  drawEndScreen(true);
@@ -1370,9 +1548,9 @@
     const dt=Math.min((ts-lastTime)/1000,0.05); lastTime=ts;
     if(gameState==='PLAYING' && queuePos>0){
       queueTimer-=dt;
-      if(queueTimer<=0){ queuePos--; queueTimer=15+Math.random()*25; }
+      if(queueTimer<=0){ queuePos--; queueTimer=15+Math.random()*25; if(queuePos===1)triggerAriadne(); }
     }
-    update(dt); render(); requestAnimationFrame(loop);
+    update(dt); render(); console.log(player.x.toFixed(1), player.y.toFixed(1)); requestAnimationFrame(loop);
   }
   requestAnimationFrame(ts=>{lastTime=ts;requestAnimationFrame(loop);});
 </script>
