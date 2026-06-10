@@ -178,13 +178,13 @@
     { q: "Which animal held the greatest symbolic and religious significance to the Minoans?",
       opts: ["Bull", "Horse", "Bobcat", "Boar"], a: 0 },
     { q: "From which mountain did the inhabitants of Knossos Palace obtain fresh water through aqueducts?",
-      opts: ["Mount Zeus", "Mount Ida", "Mount Juktas", "Mount Olympus"], a: 1 },
+      opts: ["Mount Zeus", "Mount Ida", "Mount Juktas", "Mount Olympus"], a: 2 },
     { q: "During what period was Knossos Palace first built?",
       opts: ["Stone Age", "Bronze Age", "Dark Ages", "Classical Period"], a: 1 },
     { q: "How many main entrance points did Knossos Palace have?",
       opts: ["1", "2", "3", "4"], a: 3 },
     { q: "About how old is Knossos Palace (in years)?",
-      opts: ["2,000", "4,000", "5,000", "8,000"], a: 2 },
+      opts: ["2,000", "4,000", "5,000", "8,000"], a: 1 },
     { q: "Who built Knossos Palace?",
       opts: ["Minoans", "Spartans", "Athenians", "Sumerians"], a: 0 },
     { q: "What was the reason for the second construction of the palace in 1700 BCE?",
@@ -460,26 +460,50 @@
   const PLAYER_SPEED=CELL*3.8, MINO_SPEED=CELL*2.1;
 
   function update(dt){
-    if(gameState!=='PLAYING') return;
+    if(gameState!=='PLAYING' && gameState!=='TRIVIA') return;
 
-    let kx=0,ky=0;
-    if(keys['ArrowLeft']||keys['a']||keys['A'])kx-=1;
-    if(keys['ArrowRight']||keys['d']||keys['D'])kx+=1;
-    if(keys['ArrowUp']||keys['w']||keys['W'])ky-=1;
-    if(keys['ArrowDown']||keys['s']||keys['S'])ky+=1;
-    const kl=Math.hypot(kx,ky); if(kl>0){kx/=kl;ky/=kl;}
-    player.x+=(kx||joy.dx)*PLAYER_SPEED*dt;
-    player.y+=(ky||joy.dy)*PLAYER_SPEED*dt;
-    resolveWalls(player);
+    if(gameState==='PLAYING'){
+      let kx=0,ky=0;
+      if(keys['ArrowLeft']||keys['a']||keys['A'])kx-=1;
+      if(keys['ArrowRight']||keys['d']||keys['D'])kx+=1;
+      if(keys['ArrowUp']||keys['w']||keys['W'])ky-=1;
+      if(keys['ArrowDown']||keys['s']||keys['S'])ky+=1;
+      const kl=Math.hypot(kx,ky); if(kl>0){kx/=kl;ky/=kl;}
+      player.x+=(kx||joy.dx)*PLAYER_SPEED*dt;
+      player.y+=(ky||joy.dy)*PLAYER_SPEED*dt;
+      resolveWalls(player);
 
-    for (let i = 0; i < traps.length; i++) {
-      const t = traps[i];
-      if (!t.cleared && dist(player.x, player.y, t.x, t.y) < CELL * 0.55) {
-        const qIdx = Math.floor(Math.random() * TRIVIA_QUESTIONS.length);
-        triviaState = { trapIndex: i, question: TRIVIA_QUESTIONS[qIdx], selectedIdx: -1, answered: false, correct: false, attempts: 0, btnRects: null, continueBtnRect: null };
-        gameState = 'TRIVIA';
-        releaseJoy();
-        return;
+      for (let i = 0; i < traps.length; i++) {
+        const t = traps[i];
+        if (!t.cleared && dist(player.x, player.y, t.x, t.y) < CELL * 0.55) {
+          const qIdx = Math.floor(Math.random() * TRIVIA_QUESTIONS.length);
+          triviaState = { trapIndex: i, question: TRIVIA_QUESTIONS[qIdx], selectedIdx: -1, answered: false, correct: false, attempts: 0, btnRects: null, continueBtnRect: null };
+          gameState = 'TRIVIA';
+          releaseJoy();
+          return;
+        }
+      }
+
+      if(!swordCollected&&dist(player.x,player.y,SWORD_X,SWORD_Y)<CELL*0.7){
+        swordCollected=true; player.isTheseus=true; theseusTimer=2.8;
+        mino.pathTimer=0;
+      }
+    }
+
+    if(theseusTimer>0) theseusTimer-=dt;
+    if(killFlashTimer>0) killFlashTimer-=dt;
+
+    if(triviaState && triviaState.answered && triviaState.resultTimer > 0){
+      triviaState.resultTimer -= dt;
+      if(triviaState.resultTimer <= 0){
+        if(triviaState.correct){
+          triviaState = null; gameState = 'PLAYING';
+        } else if(triviaState.attempts < 2){
+          triviaState.wrongIdx = triviaState.selectedIdx;
+          triviaState.answered = false; triviaState.selectedIdx = -1;
+        } else {
+          restartGame();
+        }
       }
     }
 
@@ -489,16 +513,7 @@
       const bps = 0.1 + heartT * 3.4;
       heartPhase += bps * dt;
       if (heartPhase >= 1) heartPhase -= 1;
-    }
 
-    if(!swordCollected&&dist(player.x,player.y,SWORD_X,SWORD_Y)<CELL*0.7){
-      swordCollected=true; player.isTheseus=true; theseusTimer=2.8;
-      mino.pathTimer=0;
-    }
-    if(theseusTimer>0) theseusTimer-=dt;
-    if(killFlashTimer>0) killFlashTimer-=dt;
-
-    if(!minoKilled){
       mino.pathTimer-=dt;
       if(mino.pathTimer<=0){
         mino.pathTimer=0.7;
@@ -526,7 +541,8 @@
           }
           const pick=nearby.length ? nearby[Math.floor(Math.random()*nearby.length)] : {r:pr,c:pc};
           const tc=cellCenter(pick.r,pick.c); threadItemX=tc.x; threadItemY=tc.y;
-        } else { gameState='DEAD'; }
+          if(gameState==='TRIVIA'){ triviaState=null; gameState='PLAYING'; }
+        } else { gameState='DEAD'; triviaState=null; }
       }
     }
 
@@ -614,7 +630,8 @@
     const pad = W * 0.06;
     const maxW = W - pad * 2;
 
-    ctx.fillStyle = 'rgba(10, 20, 38, 0.96)';
+    // Light full-screen tint so maze stays visible
+    ctx.fillStyle = 'rgba(10, 20, 38, 0.38)';
     ctx.fillRect(0, QUEUE_H, W, GAME_H - QUEUE_H);
 
     ctx.textAlign = 'center';
@@ -627,8 +644,10 @@
 
     ctx.fillStyle = '#D5E6ED';
     ctx.font = `${Math.floor(W * 0.036)}px Georgia,serif`;
-    const attemptsLeft = 2 - triviaState.attempts;
-    ctx.fillText(attemptsLeft === 2 ? 'Answer correctly to escape!' : '⚠ Last chance — wrong answer restarts the game!', W / 2, y);
+    if (!(answered && triviaState.correct)) {
+      const attemptsLeft = 2 - triviaState.attempts;
+      ctx.fillText(attemptsLeft === 2 ? 'Answer correctly to escape!' : '⚠ Last chance — wrong answer restarts the game!', W / 2, y);
+    }
     y += Math.floor(GAME_H * 0.03);
 
     ctx.fillStyle = '#FCB075';
@@ -664,12 +683,14 @@
       const bx = pad, by = y;
       triviaState.btnRects.push({ x: bx, y: by, w: maxW, h: btnH });
 
-      let bg = 'rgba(28, 53, 94, 0.85)', border = '#556B85', tc = '#D5E6ED';
+      let bg = 'rgba(28, 53, 94, 0.78)', border = '#556B85', tc = '#D5E6ED';
       if (answered) {
-        if (triviaState.correct && i === question.a) { bg = 'rgba(20, 110, 55, 0.92)'; border = '#4CAF50'; tc = '#fff'; }
-        else if (i === selectedIdx && i !== question.a) { bg = 'rgba(150, 28, 28, 0.92)'; border = '#cc2200'; tc = '#fff'; }
+        if (triviaState.correct && i === question.a) { bg = 'rgba(20, 110, 55, 0.82)'; border = '#4CAF50'; tc = '#fff'; }
+        else if (i === selectedIdx && i !== question.a) { bg = 'rgba(150, 28, 28, 0.82)'; border = '#cc2200'; tc = '#fff'; }
       } else if (i === selectedIdx) {
-        bg = 'rgba(55, 88, 140, 0.92)'; border = '#FCB075';
+        bg = 'rgba(55, 88, 140, 0.85)'; border = '#FCB075';
+      } else if (i === triviaState.wrongIdx) {
+        bg = 'rgba(150, 28, 28, 0.82)'; border = '#cc2200'; tc = '#fff';
       }
 
       ctx.fillStyle = bg;
@@ -683,49 +704,39 @@
       y += btnH + btnGap;
     }
 
-    if (answered) {
+    if (answered && !triviaState.correct && triviaState.attempts >= 2) {
       y += 4;
       const cbtnH = Math.floor(GAME_H * 0.09);
-      triviaState.continueBtnRect = { x: pad, y, w: maxW, h: cbtnH };
-      ctx.fillStyle = triviaState.correct ? 'rgba(20, 110, 55, 0.92)' : 'rgba(100, 35, 35, 0.92)';
+      ctx.fillStyle = 'rgba(100, 35, 35, 0.82)';
       ctx.beginPath(); ctx.roundRect(pad, y, maxW, cbtnH, 10); ctx.fill();
-      ctx.strokeStyle = triviaState.correct ? '#4CAF50' : '#cc2200'; ctx.lineWidth = 2;
+      ctx.strokeStyle = '#cc2200'; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.roundRect(pad, y, maxW, cbtnH, 10); ctx.stroke();
       ctx.fillStyle = '#fff';
       ctx.font = `bold ${Math.floor(W * 0.04)}px Georgia,serif`;
-      const btnLabel = triviaState.correct ? '✓  Continue!' : (triviaState.attempts < 2 ? '✗  Try again' : '✗  Restarting...');
-      ctx.fillText(btnLabel, W / 2, y + cbtnH * 0.63);
+      ctx.fillText('✗  Restarting...', W / 2, y + cbtnH * 0.63);
     }
   }
 
   function handleTriviaClick(x, y) {
-    if (!triviaState) return;
-    if (!triviaState.answered) {
-      const rects = triviaState.btnRects;
-      if (!rects) return;
-      for (let i = 0; i < 4; i++) {
-        const b = rects[i];
-        if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) {
-          triviaState.attempts++;
-          triviaState.selectedIdx = i;
-          triviaState.answered = true;
-          triviaState.correct = (i === triviaState.question.a);
-          if (triviaState.correct) traps[triviaState.trapIndex].cleared = true;
-          return;
-        }
-      }
-    } else {
-      const cb = triviaState.continueBtnRect;
-      if (cb && x >= cb.x && x <= cb.x + cb.w && y >= cb.y && y <= cb.y + cb.h) {
+    if (!triviaState || triviaState.answered) return;
+    const rects = triviaState.btnRects;
+    if (!rects) return;
+    for (let i = 0; i < 4; i++) {
+      const b = rects[i];
+      if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) {
+        triviaState.attempts++;
+        triviaState.selectedIdx = i;
+        triviaState.answered = true;
+        triviaState.correct = (i === triviaState.question.a);
         if (triviaState.correct) {
-          triviaState = null;
-          gameState = 'PLAYING';
+          traps[triviaState.trapIndex].cleared = true;
+          triviaState.resultTimer = 0.75;
         } else if (triviaState.attempts < 2) {
-          triviaState.answered = false;
-          triviaState.selectedIdx = -1;
+          triviaState.resultTimer = 0.65;
         } else {
-          restartGame();
+          triviaState.resultTimer = 1.2;
         }
+        return;
       }
     }
   }
