@@ -242,15 +242,15 @@
 
   const pauseBtnImg = new Image();
   pauseBtnImg.onload = () => { pauseImgLoaded = true; };
-  pauseBtnImg.src = 'pause.png'; 
+  // pauseBtnImg.src = 'pause.png';
 
   const instructionsImg = new Image();
   instructionsImg.onload = () => { instImgLoaded = true; };
-  instructionsImg.src = 'instructions.png';
+  // instructionsImg.src = 'instructions.png';
 
   const quitBtnImg = new Image();
   quitBtnImg.onload = () => { quitImgLoaded = true; };
-  quitBtnImg.src = 'quit.png';
+  // quitBtnImg.src = 'quit.png';
 
   const triviaImgCache = {};
   function getTriviaImg(src) {
@@ -625,7 +625,7 @@
       ) gameState='WIN';
     }
   }
-  const PLAYER_SPEED=CELL*3.8, MINO_SPEED=CELL*2.1;
+  // const PLAYER_SPEED=CELL*3.8, MINO_SPEED=CELL*2.1;
 
   function updateIntro(dt) {
     const anim = introAnim;
@@ -690,19 +690,20 @@
 
   function update(dt){
     if(gameState==='ARIADNE'){updateAriadne(dt);return;}
-    if(gameState!=='PLAYING') return;
     if (gameState === 'INTRO') { updateIntro(dt); return; }
     if(gameState!=='PLAYING' && gameState!=='TRIVIA') return;
 
-    let kx=0,ky=0;
-    if(keys['ArrowLeft']||keys['a']||keys['A']||dpad.left)kx-=1;
-    if(keys['ArrowRight']||keys['d']||keys['D']||dpad.right)kx+=1;
-    if(keys['ArrowUp']||keys['w']||keys['W']||dpad.up)ky-=1;
-    if(keys['ArrowDown']||keys['s']||keys['S']||dpad.down)ky+=1;
-    const kl=Math.hypot(kx,ky); if(kl>0){kx/=kl;ky/=kl;}
-    player.x+=kx*PLAYER_SPEED*dt;
-    player.y+=ky*PLAYER_SPEED*dt;
-    resolveWalls(player);
+    if(gameState==='PLAYING'){
+      let kx=0,ky=0;
+      if(keys['ArrowLeft']||keys['a']||keys['A']||dpad.left)kx-=1;
+      if(keys['ArrowRight']||keys['d']||keys['D']||dpad.right)kx+=1;
+      if(keys['ArrowUp']||keys['w']||keys['W']||dpad.up)ky-=1;
+      if(keys['ArrowDown']||keys['s']||keys['S']||dpad.down)ky+=1;
+      const kl=Math.hypot(kx,ky); if(kl>0){kx/=kl;ky/=kl;}
+      player.x+=kx*PLAYER_SPEED*dt;
+      player.y+=ky*PLAYER_SPEED*dt;
+      resolveWalls(player);
+    }
     if(gameState==='PLAYING'){
       let kx=0,ky=0;
       if(keys['ArrowLeft']||keys['a']||keys['A'])kx-=1;
@@ -710,8 +711,8 @@
       if(keys['ArrowUp']||keys['w']||keys['W'])ky-=1;
       if(keys['ArrowDown']||keys['s']||keys['S'])ky+=1;
       const kl=Math.hypot(kx,ky); if(kl>0){kx/=kl;ky/=kl;}
-      player.x+=(kx||joy.dx)*PLAYER_SPEED*dt;
-      player.y+=(ky||joy.dy)*PLAYER_SPEED*dt;
+      // player.x+=(kx||joy.dx)*PLAYER_SPEED*dt;
+      // player.y+=(ky||joy.dy)*PLAYER_SPEED*dt;
       resolveWalls(player);
 
       for (let i = 0; i < traps.length; i++) {
