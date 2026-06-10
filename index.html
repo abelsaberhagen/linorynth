@@ -1,37 +1,248 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Linorinth - Game</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    background: #111;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    overflow: hidden;
-    font-family: 'Georgia', serif;
-    color: #1C355E;
-  }
-  #app-frame {
-    position: relative;
-    background-color: #D5E6ED;
-    border-radius: 36px;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
-  canvas { display: block; touch-action: none; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Linorinth - Game</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #111;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+      font-family: 'Georgia', serif;
+      color: #1C355E;
+    }
+    #app-frame {
+      position: relative;
+      background-color: #D5E6ED;
+      border-radius: 36px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    canvas { display: block; touch-action: none; }
+
+    /* --- PAUSE OVERLAY STYLES --- */
+    @import url('https://fonts.googleapis.com/css2?family=IM+Fell+Double+Pica&display=swap');
+
+    .paused-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background: #C1DEE4;
+      overflow: hidden;
+      box-shadow: 0px 10px 30px rgba(0,0,0,0.1);
+    }
+
+    .resume-game-overlay-link {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 120;
+      cursor: pointer;
+    }
+
+    .blur-bg-ellipse {
+      position: absolute;
+      width: 227px;
+      left: calc(50% - 227px/2 + 3px);
+      top: -164px;
+      bottom: 496px;
+      background: rgba(255, 255, 255, 0.8);
+      filter: blur(150px);
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .inner-panel-card {
+      position: absolute;
+      width: calc(100% - 22px);
+      height: calc(100% - 22px);
+      left: 11px;
+      top: 10px;
+      background: #D3E8EC;
+      border-radius: 30px;
+    }
+
+    .logo-vector {
+      position: absolute;
+      width: 201.16px;
+      height: 54.35px;
+      left: 50%;
+      transform: translateX(-50%);
+      top: 49.28px;
+    }
+
+    .game-paused-title {
+      position: absolute;
+      width: 218px;
+      height: 43px;
+      left: calc(50% - 218px/2 + 0.5px);
+      top: 137px;
+      font-style: normal;
+      font-weight: 400;
+      font-size: 24px;
+      line-height: 30px;
+      text-align: center;
+      color: #14325C;
+    }
+
+    .play-polygon-icon {
+      box-sizing: border-box;
+      position: absolute;
+      width: 100px;
+      height: 100px;
+      left: calc(50% - 100px/2);
+      top: 166px;
+      background: #F9B271;
+      border: 5px solid rgba(255, 255, 255, 0.15);
+      transform: rotate(90deg);
+      clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+    }
+
+    /* --- ADJUSTED PAUSE OVERLAY STYLES --- */
+
+    .step-1-text {
+      position: absolute;
+      width: 110px;
+      height: 38px;
+      left: calc(50% - 110px/2 + 59.5px);
+      top: 275px; /* Shifted slightly down */
+      font-style: normal;
+      font-weight: 400;
+      font-size: 13px;
+      line-height: 16px;
+      text-align: right;
+      color: #14325C;
+    }
+
+    .step-2-text {
+      position: absolute;
+      width: 162px;
+      height: 26px;
+      left: calc(50% - 162px/2 - 30.5px);
+      top: 355px; /* Shifted down to clear Step 1 */
+      font-style: normal;
+      font-weight: 400;
+      font-size: 13px;
+      line-height: 16px;
+      color: #14325C;
+    }
+
+    .step-3-text {
+      position: absolute;
+      width: 249px;
+      height: 27px;
+      left: calc(50% - 249px/2 - 6px);
+      top: 440px; /* Shifted down to clear Step 2 */
+      font-style: normal;
+      font-weight: 400;
+      font-size: 13px;
+      line-height: 16px;
+      text-align: right;
+      color: #14325C;
+    }
+
+    .step-4-text {
+      position: absolute;
+      width: 230px;
+      height: 28px;
+      left: calc(50% - 230px/2 + 3.5px);
+      top: 525px; /* Shifted down to clear Step 3 */
+      font-style: normal;
+      font-weight: 400;
+      font-size: 13px;
+      line-height: 16px;
+      color: #14325C;
+    }
+
+    .project-img-1 {
+      position: absolute;
+      width: 108px;
+      height: 44px;
+      right: 53px;
+      top: 308px; /* Aligned properly with Step 1 text */
+      background: url('FIND SWORD.png');
+      background-size: contain;
+      background-repeat: no-repeat;
+    }
+
+    .project-img-2 {
+      position: absolute;
+      width: 145px;
+      height: 59px;
+      left: calc(50% - 145px/2 - 39px);
+      top: 380px; /* Adjusted to sit under Step 2 text */
+      background: url('KILL MINOTAUR.png');
+      background-size: contain;
+      background-repeat: no-repeat;
+    }
+
+    .project-img-3 {
+      position: absolute;
+      width: 165px;
+      height: 77px;
+      right: 12px;
+      top: 458px; /* Adjusted to sit under Step 3 text */
+      background: url('ESCAPE MAZE.png');
+      background-size: contain;
+      background-repeat: no-repeat;
+    }
+
+    .project-img-4 {
+      position: absolute;
+      width: 44px;
+      height: 58px;
+      left: calc(50% - 44px/2 - 89.5px);
+      top: 555px; /* Adjusted to sit under Step 4 text */
+      background: url('ENTER PALACE.png');
+      background-size: contain;
+      background-repeat: no-repeat;
+    }
+
+    .resume-instruction {
+      position: absolute;
+      bottom: 20px;
+      width: 100%;
+      text-align: center;
+      font-size: 11px;
+      color: rgba(20, 50, 92, 0.6);
+      letter-spacing: 0.05em;
+    }
+  </style>
 </head>
 <body>
 
 <div id="app-frame">
   <canvas id="c"></canvas>
+
+  <div id="pause-overlay" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 100;">
+    <div class="paused-container">
+      <div class="resume-game-overlay-link" onclick="resumeMyGame()"></div>
+      <div class="blur-bg-ellipse"></div>
+      <div class="inner-panel-card">
+        <img src="logo.svg" alt="LINORINTH" class="logo-vector">
+        <h1 class="game-paused-title">Game Paused</h1>
+        <div class="play-polygon-icon"></div>
+        <div class="step-1-text">STEP 1. FIND SWORD</div>
+        <div class="step-2-text">STEP 2. SLAY MINOTAUR</div>
+        <div class="step-3-text">STEP 3. ESCAPE LABYRINTH</div>
+        <div class="step-4-text">STEP 4. ENTER KNOSSOS PALACE</div>
+        <div class="project-img-1"></div>
+        <div class="project-img-2"></div>
+        <div class="project-img-3"></div>
+        <div class="project-img-4"></div>
+        <div class="resume-instruction">TAP ANYWHERE TO RESUME GAME</div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -155,7 +366,7 @@
     swordSpawn  = randomSpawn([playerSpawn], ROWS/3);
     minoSpawn   = randomSpawn([playerSpawn, swordSpawn], ROWS/4);
   }
-  
+
   function randomSpawn(others=[], minCells=0) {
     for (let a=0; a<2000; a++) {
       const r=Math.floor(Math.random()*ROWS), c=Math.floor(Math.random()*COLS);
@@ -236,7 +447,7 @@
 
   const pauseBtnImg = new Image();
   pauseBtnImg.onload = () => { pauseImgLoaded = true; };
-  pauseBtnImg.src = 'pause.png'; 
+  pauseBtnImg.src = 'pause.png';
 
   const instructionsImg = new Image();
   instructionsImg.onload = () => { instImgLoaded = true; };
@@ -260,7 +471,7 @@
   // Preload all trivia images at startup
   TRIVIA_QUESTIONS.forEach(q => { if (q.img) getTriviaImg(q.img); });
 
-  const LOST_GAME_URL = "https://www.figma.com/proto/FUkPM7VQLGC21QtSqBMbJt/Linorinth?node-id=1-10&t=D42idiHsyRwFGo7U-1&scaling=min-zoom&content-scaling=fixed&page-id=0%3A1&starting-point-node-id=1%3A34";
+  const LOST_GAME_URL = "game-over.html";
 
   function applySpawns(){
     player.x=playerSpawn.x; player.y=playerSpawn.y; player.isTheseus=false;
@@ -339,9 +550,14 @@
 
   function restartGame(){initSpawns();initTraps();applySpawns();theseusTimer=0;gameState='PLAYING';triviaState=null;releaseJoy();}
 
+  function resumeMyGame() {
+    gameState = 'PLAYING';
+    document.getElementById('pause-overlay').style.display = 'none';
+  }
+
   function handleEndScreenClick(x, y) {
     if (gameState === 'WIN') {
-      window.location.href = "https://www.figma.com/proto/FUkPM7VQLGC21QtSqBMbJt/Linorinth?node-id=1-45&t=nbSETHUmlXBUluo5-0&scaling=min-zoom&content-scaling=fixed&page-id=0%3A1&starting-point-node-id=1%3A34";
+      window.location.href = 'victory.html';
     } else if (gameState === 'DEAD') {
       if (x >= W/2 - 110 && x <= W/2 + 110 && y >= 340 && y <= 394) {
         restartGame();
@@ -358,18 +574,19 @@
       return;
     }
     if (gameState === 'PAUSED') {
-      gameState = 'PLAYING';
+      resumeMyGame();
       return;
     }
 
     if (gameState === 'PLAYING') {
       const btnSize = Math.floor(CELL * 1.1);
-      
+
       // Floating Pause Button boundaries (Top Right)
       const pauseX = W - btnSize - 16;
       const pauseY = QUEUE_H + 16;
       if (x >= pauseX - 6 && x <= pauseX + btnSize + 6 && y >= pauseY - 6 && y <= pauseY + btnSize + 6) {
         gameState = 'PAUSED';
+        document.getElementById('pause-overlay').style.display = 'block';
         releaseJoy();
         return;
       }
@@ -417,8 +634,8 @@
     //   return;
     // }
     // if(!pinchActive){
-      const{x,y}=getPos(e.changedTouches[0].clientX,e.changedTouches[0].clientY);
-      handleInteraction(x, y, true, e.changedTouches[0].identifier);
+    const{x,y}=getPos(e.changedTouches[0].clientX,e.changedTouches[0].clientY);
+    handleInteraction(x, y, true, e.changedTouches[0].identifier);
     // }
   },{passive:false});
   canvas.addEventListener('touchmove',e=>{
@@ -452,7 +669,7 @@
   const keys={};
   window.addEventListener('keydown',e=>{
     keys[e.key]=true; if(e.key===' ')e.preventDefault();
-    if(gameState==='PAUSED') { gameState = 'PLAYING'; return; }
+    if(gameState==='PAUSED') { resumeMyGame(); return; }
     if(gameState!=='PLAYING'&&(e.key===' '||e.key==='Enter'))restartGame();
   });
   window.addEventListener('keyup',e=>{keys[e.key]=false;});
@@ -532,10 +749,10 @@
 
     if(minoKilled){
       const {side}=spawnRoom;
-      if(side==='top'    && player.y<-PLAYER_R)       gameState='WIN';
-      if(side==='bottom' && player.y>MAZE_H+PLAYER_R) gameState='WIN';
-      if(side==='left'   && player.x<-PLAYER_R)       gameState='WIN';
-      if(side==='right'  && player.x>MAZE_W+PLAYER_R) gameState='WIN';
+      if(side==='top'    && player.y<-PLAYER_R)       { gameState='WIN'; window.location.href = "victory.html"; }
+      if(side==='bottom' && player.y>MAZE_H+PLAYER_R) { gameState='WIN'; window.location.href = "victory.html"; }
+      if(side==='left'   && player.x<-PLAYER_R)       { gameState='WIN'; window.location.href = "victory.html"; }
+      if(side==='right'  && player.x>MAZE_W+PLAYER_R) { gameState='WIN'; window.location.href = "victory.html"; }
 
       if(!threadCollected && dist(player.x,player.y,threadItemX,threadItemY)<CELL*0.7){
         threadCollected=true;
@@ -563,8 +780,8 @@
       const target = overlaps ? 0.2 : 0.8;
       const speed = 0.6 / 0.2;
       minimapAlpha = overlaps
-        ? Math.max(target, minimapAlpha - speed * dt)
-        : Math.min(target, minimapAlpha + speed * dt);
+              ? Math.max(target, minimapAlpha - speed * dt)
+              : Math.min(target, minimapAlpha + speed * dt);
     }
   }
 
@@ -881,7 +1098,7 @@
       ctx.beginPath();
       ctx.roundRect(btnX, btnY, btnSize, btnSize, 8);
       ctx.fill();
-      
+
       ctx.strokeStyle = '#FCB075';
       ctx.lineWidth = 2.5;
       ctx.stroke();
@@ -970,7 +1187,7 @@
       ctx.beginPath();
       ctx.roundRect(btnX, btnY, btnSize, btnSize, 8);
       ctx.fill();
-      
+
       ctx.strokeStyle = '#FCB075';
       ctx.lineWidth = 2.5;
       ctx.stroke();
@@ -978,7 +1195,7 @@
       ctx.strokeStyle = '#FCB075';
       ctx.lineWidth = 3.5;
       ctx.lineCap = 'round';
-      
+
       const pad = btnSize * 0.28;
       ctx.beginPath();
       ctx.moveTo(btnX + pad, btnY + pad);
@@ -990,57 +1207,7 @@
     ctx.restore();
   }
 
-  function drawEndScreen(isWin){
-    ctx.fillStyle='#D5E6ED';ctx.fillRect(0,0,W,H);
-    ctx.fillStyle='#1C355E';ctx.textAlign='center';
-    if(isWin){
-      ctx.font='bold 20px Georgia,serif'; ctx.fillText('LINORINTH', W/2, 110);
-      ctx.font='bold 28px Georgia,serif'; ctx.fillText('VICTORY!', W/2, 160);
-      ctx.font='16px Georgia,serif'; ctx.fillText('You made it to the end!', W/2, 220);
-      ctx.fillText('YOU ARE POSITION', W/2, 290);
-      ctx.fillStyle='#FCB075'; ctx.beginPath(); ctx.roundRect(W/2-70, 320, 140, 140, 24); ctx.fill();
-      ctx.fillStyle='#1C355E'; ctx.font='bold 76px Georgia,serif'; ctx.fillText('I', W/2, 420);
-      ctx.font='bold 16px Georgia,serif'; ctx.fillText('IN LINE', W/2, 500);
-      ctx.font='15px Georgia,serif';
-      ctx.fillText('Walk to the Linorinth entrance to', W/2, 550);
-      ctx.fillText('claim your instant admission!', W/2, 575);
-    } else {
-      ctx.font='bold 20px Georgia,serif'; ctx.fillText('LINORINTH', W/2, 120);
-      ctx.font='bold 28px Georgia,serif'; ctx.fillText('GAME OVER', W/2, 170);
-      ctx.font='16px Georgia,serif';
-      ctx.fillText('The Minotaur has defeated you!', W/2, 230);
-      ctx.fillText('Fight again or give up?', W/2, 255);
-      ctx.fillStyle='#FCB075'; ctx.beginPath(); ctx.roundRect(W/2-110, 340, 220, 54, 16); ctx.roundRect(W/2-110, 420, 220, 54, 16); ctx.fill();
-      ctx.fillStyle='#1C355E'; ctx.font='bold 16px Georgia,serif';
-      ctx.fillText('REPLAY', W/2, 373);
-      ctx.font='15px Georgia,serif'; ctx.fillText('Exit game', W/2, 452);
-    }
-  }
-
-  function drawPauseScreen() {
-    if (instImgLoaded) {
-      ctx.drawImage(instructionsImg, 0, 0, W, H);
-    } else {
-      ctx.fillStyle = 'rgba(20, 37, 61, 0.95)';
-      ctx.fillRect(0, 0, W, H);
-      ctx.fillStyle = '#FCB075';
-      ctx.textAlign = 'center';
-      ctx.font = 'bold 24px Georgia,serif';
-      ctx.fillText('GAME PAUSED', W / 2, H / 2 - 40);
-      ctx.fillStyle = '#D5E6ED';
-      ctx.font = '16px Georgia,serif';
-      ctx.fillText('Instructions Screen Placeholder', W / 2, H / 2);
-      ctx.font = 'italic 14px Georgia,serif';
-      ctx.fillText('(Click anywhere to resume)', W / 2, H / 2 + 40);
-    }
-  }
-
   function render(){
-    if (gameState === 'PAUSED') {
-      drawPauseScreen();
-      return;
-    }
-
     const halfW = W / (2 * zoom), halfH = GAME_H / (2 * zoom);
     const camX = Math.max(halfW, Math.min(MAZE_W - halfW, player.x));
     const camY = Math.max((GAME_H/2 - QUEUE_H) / zoom, Math.min(MAZE_H - halfH, player.y));
@@ -1155,12 +1322,16 @@
     ctx.fillStyle='#D5E6ED';ctx.fillRect(0,GAME_H,W,CTRL_H);
     drawControls();
 
-    if(gameState==='WIN')  drawEndScreen(true);
-    if(gameState==='DEAD') drawEndScreen(false);
+    if (gameState === 'WIN') {
+      window.location.href = 'victory.html';
+    }
+    if (gameState === 'DEAD') {
+      window.location.href = 'game-over.html';
+    }
     if(gameState==='TRIVIA') drawTriviaOverlay();
 
     drawQueueBar();
-    
+
     if (gameState === 'PLAYING') {
       if (player.isTheseus && !minoKilled) drawMinimap();
       drawFloatingPauseButton();
