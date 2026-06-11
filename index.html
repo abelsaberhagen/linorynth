@@ -449,7 +449,10 @@
     const maze = new Uint8Array(ROWS * COLS);
     function idx(r, c) { return r * COLS + c; }
 
-    (function generate() {
+    let spawnRoom = {side:'top', r0:0, c0:0};
+
+    function generateMaze() {
+      maze.fill(0);
       const visited = new Uint8Array(ROWS * COLS);
       const stack = [0]; visited[0] = 1;
       const dirs = [{dr:-1,dc:0,bit:1,ob:4},{dr:0,dc:1,bit:2,ob:8},{dr:1,dc:0,bit:4,ob:1},{dr:0,dc:-1,bit:8,ob:2}];
@@ -465,22 +468,22 @@
         }
         if (!moved) stack.pop();
       }
-    })();
+      const _sides = ['top','bottom','left','right'];
+      const _side  = _sides[Math.floor(Math.random()*4)];
+      const _sr0   = _side==='top' ? 0 : _side==='bottom' ? ROWS-2 : Math.floor(Math.random()*(ROWS-1));
+      const _sc0   = _side==='left' ? 0 : _side==='right' ? COLS-2 : Math.floor(Math.random()*(COLS-1));
+      spawnRoom.side = _side; spawnRoom.r0 = _sr0; spawnRoom.c0 = _sc0;
+      maze[idx(_sr0,  _sc0)]   |= 2|4;
+      maze[idx(_sr0,  _sc0+1)] |= 4|8;
+      maze[idx(_sr0+1,_sc0)]   |= 1|2;
+      maze[idx(_sr0+1,_sc0+1)] |= 1|8;
+      if(_side==='top')    { maze[idx(_sr0+1,_sc0+1)]|=4; maze[idx(_sr0+2,_sc0+1)]|=1; }
+      if(_side==='bottom') { maze[idx(_sr0,  _sc0+1)]|=1; maze[idx(_sr0-1,_sc0+1)]|=4; }
+      if(_side==='left')   { maze[idx(_sr0+1,_sc0+1)]|=2; maze[idx(_sr0+1,_sc0+2)]|=8; }
+      if(_side==='right')  { maze[idx(_sr0+1,_sc0)]  |=8; maze[idx(_sr0+1,_sc0-1)]|=2; }
+    }
 
-    const _sides = ['top','bottom','left','right'];
-    const _side  = _sides[Math.floor(Math.random()*4)];
-    const _sr0   = _side==='top' ? 0 : _side==='bottom' ? ROWS-2 : Math.floor(Math.random()*(ROWS-1));
-    const _sc0   = _side==='left' ? 0 : _side==='right' ? COLS-2 : Math.floor(Math.random()*(COLS-1));
-    const spawnRoom = {side:_side, r0:_sr0, c0:_sc0};
-
-    maze[idx(_sr0,  _sc0)]   |= 2|4;
-    maze[idx(_sr0,  _sc0+1)] |= 4|8;
-    maze[idx(_sr0+1,_sc0)]   |= 1|2;
-    maze[idx(_sr0+1,_sc0+1)] |= 1|8;
-    if(_side==='top')    { maze[idx(_sr0+1,_sc0+1)]|=4; maze[idx(_sr0+2,_sc0+1)]|=1; }
-    if(_side==='bottom') { maze[idx(_sr0,  _sc0+1)]|=1; maze[idx(_sr0-1,_sc0+1)]|=4; }
-    if(_side==='left')   { maze[idx(_sr0+1,_sc0+1)]|=2; maze[idx(_sr0+1,_sc0+2)]|=8; }
-    if(_side==='right')  { maze[idx(_sr0+1,_sc0)]  |=8; maze[idx(_sr0+1,_sc0-1)]|=2; }
+    generateMaze();
 
     const DMAP = [{dr:-1,dc:0,bit:1},{dr:0,dc:1,bit:2},{dr:1,dc:0,bit:4},{dr:0,dc:-1,bit:8}];
 
@@ -700,6 +703,11 @@
     swordRightImg.onload = () => { swordRightLoaded = true; };
     swordRightImg.src = 'theseus_assets/sword_right.png';
 
+    let minotaurImgLoaded = false;
+    const minotaurImg = new Image();
+    minotaurImg.onload = () => { minotaurImgLoaded = true; };
+    minotaurImg.src = 'minotaur.png';
+
     let ariadne = {x:0, y:0, r:PLAYER_R, path:[], pathTimer:0};
     let ariadnePhase = null; // null | 'approach' | 'escape'
     let escapeWalkPhase = 0;
@@ -795,7 +803,7 @@
     //   };
     // }
 
-    function restartGame(){initSpawns();initTraps();applySpawns();theseusTimer=0;gameState='PLAYING';
+    function restartGame(){generateMaze();initSpawns();initTraps();applySpawns();theseusTimer=0;gameState='PLAYING';
       updateLayout();
       triviaState=null;dragInput.active = false;}
 
@@ -853,10 +861,11 @@
       if (gameState === 'WIN') {
         window.location.href = 'victory.html';
       } else if (gameState === 'DEAD') {
-        if (x >= W/2 - 110 && x <= W/2 + 110 && y >= 340 && y <= 394) {
+        const {btnW,btnH,btn1Y,btn2Y} = getEndScreenButtons();
+        if (x >= W/2 - btnW/2 && x <= W/2 + btnW/2 && y >= btn1Y && y <= btn1Y + btnH) {
           restartGame();
         }
-        else if (x >= W/2 - 110 && x <= W/2 + 110 && y >= 420 && y <= 474) {
+        else if (x >= W/2 - btnW/2 && x <= W/2 + btnW/2 && y >= btn2Y && y <= btn2Y + btnH) {
           window.location.href = LOST_GAME_URL;
         }
       }
@@ -897,6 +906,10 @@
           screenFadeAlpha = 0;
         }
 
+        return;
+      }
+      if (gameState === 'DEAD' || gameState === 'WIN') {
+        handleEndScreenClick(x, y);
         return;
       }
       if (gameState === 'TRIVIA') {
@@ -1642,12 +1655,48 @@
       ctx.beginPath();ctx.moveTo(ox-sw*0.5,oy-sw*0.15);ctx.lineTo(ox+sw*0.5,oy-sw*0.15);ctx.stroke();
     }
     function drawMinotaur(x,y,s){
-      ctx.strokeStyle='#c44';ctx.lineWidth=Math.max(1.5,s*0.13);ctx.lineCap='round';
-      ctx.beginPath();ctx.rect(x-s*0.62,y-s*1.1,s*1.24,s*1.35);ctx.stroke();
-      ctx.beginPath();ctx.arc(x,y-s*1.62,s*0.52,0,Math.PI*2);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(x-s*0.42,y-s*2.06);ctx.lineTo(x-s*0.82,y-s*2.68);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(x+s*0.42,y-s*2.06);ctx.lineTo(x+s*0.82,y-s*2.68);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(x-s*0.32,y+s*0.25);ctx.lineTo(x-s*0.32,y+s*1.3);ctx.moveTo(x+s*0.32,y+s*0.25);ctx.lineTo(x+s*0.32,y+s*1.3);ctx.stroke();
+      const size = s * 4.5;
+      if(minotaurImgLoaded){
+        const offscreen = document.createElement('canvas');
+        offscreen.width = size; offscreen.height = size;
+        const octx = offscreen.getContext('2d');
+        octx.drawImage(minotaurImg, 0, 0, size, size);
+        octx.globalCompositeOperation = 'source-atop';
+        octx.fillStyle = 'rgba(180,0,0,0.9)';
+        octx.fillRect(0, 0, size, size);
+        ctx.drawImage(offscreen, x - size/2, y + s*1.5 - size);
+      } else {
+        ctx.strokeStyle='#c44';ctx.lineWidth=Math.max(1.5,s*0.13);ctx.lineCap='round';
+        ctx.beginPath();ctx.rect(x-s*0.62,y-s*1.1,s*1.24,s*1.35);ctx.stroke();
+        ctx.beginPath();ctx.arc(x,y-s*1.62,s*0.52,0,Math.PI*2);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(x-s*0.42,y-s*2.06);ctx.lineTo(x-s*0.82,y-s*2.68);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(x+s*0.42,y-s*2.06);ctx.lineTo(x+s*0.82,y-s*2.68);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(x-s*0.32,y+s*0.25);ctx.lineTo(x-s*0.32,y+s*1.3);ctx.moveTo(x+s*0.32,y+s*0.25);ctx.lineTo(x+s*0.32,y+s*1.3);ctx.stroke();
+      }
+    }
+    function getEndScreenButtons(){
+      const btnW=220, btnH=54, btn1Y=Math.floor(H*0.46), btn2Y=Math.floor(H*0.58);
+      return {btnW, btnH, btn1Y, btn2Y};
+    }
+    function drawEndScreen(isWin){
+      ctx.fillStyle='#D5E6ED';ctx.fillRect(0,0,W,H);
+      ctx.fillStyle='#1C355E';ctx.textAlign='center';
+      if(isWin){
+        ctx.font='bold 20px Georgia,serif'; ctx.fillText('LINORINTH', W/2, H*0.16);
+        ctx.font='bold 28px Georgia,serif'; ctx.fillText('VICTORY!', W/2, H*0.24);
+        ctx.font='16px Georgia,serif'; ctx.fillText('You made it to the end!', W/2, H*0.33);
+      } else {
+        const {btnW,btnH,btn1Y,btn2Y} = getEndScreenButtons();
+        ctx.font=`bold ${Math.floor(W*0.05)}px Georgia,serif`; ctx.fillText('LINORINTH', W/2, H*0.17);
+        ctx.font=`bold ${Math.floor(W*0.07)}px Georgia,serif`; ctx.fillText('GAME OVER', W/2, H*0.26);
+        ctx.font=`${Math.floor(W*0.04)}px Georgia,serif`;
+        ctx.fillText('The Minotaur has defeated you!', W/2, H*0.36);
+        ctx.fillText('Fight again or give up?', W/2, H*0.42);
+        ctx.fillStyle='#FCB075'; ctx.beginPath(); ctx.roundRect(W/2-btnW/2, btn1Y, btnW, btnH, 16); ctx.roundRect(W/2-btnW/2, btn2Y, btnW, btnH, 16); ctx.fill();
+        ctx.fillStyle='#1C355E'; ctx.font=`bold ${Math.floor(W*0.04)}px Georgia,serif`;
+        ctx.fillText('REPLAY', W/2, btn1Y + btnH*0.63);
+        ctx.font=`${Math.floor(W*0.038)}px Georgia,serif`; ctx.fillText('Return to normal line', W/2, btn2Y + btnH*0.63);
+      }
     }
     function drawSwordItem(x,y,size){
       ctx.shadowColor='rgba(252,176,117,0.7)';ctx.shadowBlur=10;
@@ -1757,6 +1806,135 @@
       }
       ctx.stroke();
       ctx.strokeStyle='#1C355E';ctx.lineWidth=3;ctx.strokeRect(0,0,MAZE_W,MAZE_H);
+    }
+
+    function drawOrnateGate(x, y, w, h, orient, isClosed) {
+      const gradient = ctx.createLinearGradient(x, y, x + (orient==='horizontal' ? w : 0), y + (orient==='vertical' ? h : 0));
+      gradient.addColorStop(0, '#4A2511');
+      gradient.addColorStop(0.5, '#6B3E23');
+      gradient.addColorStop(1, '#3D1F0F');
+      ctx.fillStyle = gradient;
+      const postW = w * 0.15, postH = h * 0.15;
+      if (isClosed) {
+        if (orient === 'horizontal') {
+          ctx.fillRect(x, y, w, h);
+          ctx.strokeStyle = '#8B5A2B';
+          ctx.lineWidth = 1.5;
+          for (let i = 0; i < 6; i++) {
+            ctx.beginPath();
+            ctx.moveTo(x + (w / 6) * i, y);
+            ctx.lineTo(x + (w / 6) * i, y + h);
+            ctx.stroke();
+          }
+          ctx.fillStyle = '#D4AF37';
+          for (let i = 0; i < 5; i++) {
+            const ox = x + (w / 5) * (i + 0.5);
+            ctx.beginPath();
+            ctx.arc(ox, y + h / 2, h * 0.2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#A68A39';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+          }
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+          ctx.fillRect(x, y + h * 0.7, w, h * 0.3);
+        } else {
+          ctx.fillRect(x, y, w, h);
+          ctx.strokeStyle = '#8B5A2B';
+          ctx.lineWidth = 1.5;
+          for (let i = 0; i < 6; i++) {
+            ctx.beginPath();
+            ctx.moveTo(x, y + (h / 6) * i);
+            ctx.lineTo(x + w, y + (h / 6) * i);
+            ctx.stroke();
+          }
+          ctx.fillStyle = '#D4AF37';
+          for (let i = 0; i < 5; i++) {
+            const oy = y + (h / 5) * (i + 0.5);
+            ctx.beginPath();
+            ctx.arc(x + w / 2, oy, w * 0.2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#A68A39';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+          }
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+          ctx.fillRect(x + w * 0.7, y, w * 0.3, h);
+        }
+      } else {
+        if (orient === 'horizontal') {
+          const post1X = x, post2X = x + w - postW;
+          ctx.fillRect(post1X, y, postW, h);
+          ctx.fillRect(post2X, y, postW, h);
+          ctx.strokeStyle = '#8B5A2B';
+          ctx.lineWidth = 1;
+          for (let p of [post1X, post2X]) {
+            for (let i = 0; i < 3; i++) {
+              ctx.beginPath();
+              ctx.moveTo(p, y + (h / 3) * (i + 1));
+              ctx.lineTo(p + postW, y + (h / 3) * (i + 1));
+              ctx.stroke();
+            }
+          }
+          ctx.fillStyle = '#D4AF37';
+          ctx.beginPath();
+          ctx.moveTo(post1X - postW * 0.3, y - postW * 0.2);
+          ctx.lineTo(post1X + postW * 1.3, y - postW * 0.2);
+          ctx.lineTo(post1X + postW * 0.9, y);
+          ctx.lineTo(post1X + postW * 0.1, y);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.moveTo(post2X - postW * 0.3, y - postW * 0.2);
+          ctx.lineTo(post2X + postW * 1.3, y - postW * 0.2);
+          ctx.lineTo(post2X + postW * 0.9, y);
+          ctx.lineTo(post2X + postW * 0.1, y);
+          ctx.fill();
+          ctx.shadowColor = 'rgba(212, 175, 55, 0.6)';
+          ctx.shadowBlur = 8;
+          ctx.strokeStyle = '#FFD700';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(x + w * 0.15, y + h * 0.3);
+          ctx.lineTo(x + w * 0.85, y + h * 0.3);
+          ctx.stroke();
+        } else {
+          const post1Y = y, post2Y = y + h - postH;
+          ctx.fillRect(x, post1Y, w, postH);
+          ctx.fillRect(x, post2Y, w, postH);
+          ctx.strokeStyle = '#8B5A2B';
+          ctx.lineWidth = 1;
+          for (let p of [post1Y, post2Y]) {
+            for (let i = 0; i < 3; i++) {
+              ctx.beginPath();
+              ctx.moveTo(x + (w / 3) * (i + 1), p);
+              ctx.lineTo(x + (w / 3) * (i + 1), p + postH);
+              ctx.stroke();
+            }
+          }
+          ctx.fillStyle = '#D4AF37';
+          ctx.beginPath();
+          ctx.moveTo(x - postH * 0.2, post1Y - postH * 0.3);
+          ctx.lineTo(x - postH * 0.2, post1Y + postH * 1.3);
+          ctx.lineTo(x, post1Y + postH * 0.9);
+          ctx.lineTo(x, post1Y + postH * 0.1);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.moveTo(x - postH * 0.2, post2Y - postH * 0.3);
+          ctx.lineTo(x - postH * 0.2, post2Y + postH * 1.3);
+          ctx.lineTo(x, post2Y + postH * 0.9);
+          ctx.lineTo(x, post2Y + postH * 0.1);
+          ctx.fill();
+          ctx.shadowColor = 'rgba(212, 175, 55, 0.6)';
+          ctx.shadowBlur = 8;
+          ctx.strokeStyle = '#FFD700';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(x + w * 0.3, y + h * 0.15);
+          ctx.lineTo(x + w * 0.3, y + h * 0.85);
+          ctx.stroke();
+        }
+      }
+      ctx.shadowColor = 'transparent';
     }
 
     // function drawControls(){
@@ -2014,24 +2192,16 @@
       }
 
       {
-        ctx.fillStyle='#5C3317';
         const {side:ds,r0:dr,c0:dc}=spawnRoom;
         const dx=dc*CELL, dy=dr*CELL;
-        const off=CELL*0.18, thick=CELL*0.3, post=CELL*0.14;
+        const off=CELL*0.18;
         const doorOpen=minoKilled||ariadnePhase==='escape';
-        if(ds==='top'){
-          if(!doorOpen){ ctx.fillRect(dx,-off,2*CELL,thick); }
-          else { ctx.fillRect(dx,-off,post,thick); ctx.fillRect(dx+2*CELL-post,-off,post,thick); }
-        } else if(ds==='bottom'){
-          if(!doorOpen){ ctx.fillRect(dx,MAZE_H+off-thick,2*CELL,thick); }
-          else { ctx.fillRect(dx,MAZE_H+off-thick,post,thick); ctx.fillRect(dx+2*CELL-post,MAZE_H+off-thick,post,thick); }
-        } else if(ds==='left'){
-          if(!doorOpen){ ctx.fillRect(-off,dy,thick,2*CELL); }
-          else { ctx.fillRect(-off,dy,thick,post); ctx.fillRect(-off,dy+2*CELL-post,thick,post); }
-        } else {
-          if(!doorOpen){ ctx.fillRect(MAZE_W+off-thick,dy,thick,2*CELL); }
-          else { ctx.fillRect(MAZE_W+off-thick,dy,thick,post); ctx.fillRect(MAZE_W+off-thick,dy+2*CELL-post,thick,post); }
-        }
+        ctx.save();
+        if(ds==='top')         drawOrnateGate(dx, -off, 2*CELL, CELL*0.3, 'horizontal', !doorOpen);
+        else if(ds==='bottom') drawOrnateGate(dx, MAZE_H+off-CELL*0.3, 2*CELL, CELL*0.3, 'horizontal', !doorOpen);
+        else if(ds==='left')   drawOrnateGate(-off, dy, CELL*0.3, 2*CELL, 'vertical', !doorOpen);
+        else                   drawOrnateGate(MAZE_W+off-CELL*0.3, dy, CELL*0.3, 2*CELL, 'vertical', !doorOpen);
+        ctx.restore();
       }
 
       if(!swordCollected) drawSwordItem(SWORD_X,SWORD_Y,CELL*0.30);
@@ -2139,7 +2309,7 @@
         window.location.href = 'victory.html';
       }
       if (gameState === 'DEAD') {
-        window.location.href = 'game-over.html';
+        drawEndScreen(false);
       }
       if(gameState==='TRIVIA') drawTriviaOverlay();
       if(gameState==='INTRO') drawIntroOverlay();
