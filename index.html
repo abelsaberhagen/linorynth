@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Linorinth - Game</title>
+
+  <script src="translations.js"></script>
+
   <style>
     @import url('https://fonts.googleapis.com/css2?family=IM+Fell+Double+Pica&display=swap');
 
@@ -81,14 +84,14 @@
 
     .game-paused-title {
       position: absolute;
-      width: 218px;
-      height: 43px;
-      left: calc(50% - 218px/2 + 0.5px);
-      top: 137px;
+      width: 260px;
+      height: 50px;
+      left: calc(50% - 260px/2);
+      top: 130px;
       font-style: normal;
       font-weight: 400;
-      font-size: 24px;
-      line-height: 30px;
+      font-size: 32px;
+      line-height: 40px;
       text-align: center;
       color: #14325C;
     }
@@ -108,102 +111,77 @@
 
     /* --- ADJUSTED PAUSE OVERLAY STYLES --- */
 
-    .step-1-text {
+    .tutorial-steps {
       position: absolute;
-      width: 110px;
-      height: 38px;
-      left: calc(50% - 110px/2 + 59.5px);
-      top: 275px; /* Shifted slightly down */
-      font-style: normal;
-      font-weight: 400;
-      font-size: 13px;
-      line-height: 16px;
+      left: 0;
+      width: 100%;
+      top: 250px;
+    }
+
+    .tutorial-row {
+      position: relative;
+      min-height: 80px;
+    }
+
+    .step-text {
+      position: absolute;
+      width: 250px;
+      font-size: 15px;
+      line-height: 70px;
+      color: #14325C;
+      white-space: nowrap;
+    }
+
+    .tutorial-row.left .step-text {
+      left: 30px;
+      text-align: left;
+    }
+
+    .tutorial-row.right .step-text {
+      right: 30px;
       text-align: right;
-      color: #14325C;
     }
 
-    .step-2-text {
+    .tutorial-row.right .project-img-1,
+    .tutorial-row.right .project-img-3 {
       position: absolute;
-      width: 162px;
-      height: 26px;
-      left: calc(50% - 162px/2 - 30.5px);
-      top: 355px; /* Shifted down to clear Step 1 */
-      font-style: normal;
-      font-weight: 400;
-      font-size: 13px;
-      line-height: 16px;
-      color: #14325C;
+      right: 30px;
+      top: 40px;
     }
 
-    .step-3-text {
+    .tutorial-row.left .project-img-2,
+    .tutorial-row.left .project-img-4 {
       position: absolute;
-      width: 249px;
-      height: 27px;
-      left: calc(50% - 249px/2 - 6px);
-      top: 440px; /* Shifted down to clear Step 2 */
-      font-style: normal;
-      font-weight: 400;
-      font-size: 13px;
-      line-height: 16px;
-      text-align: right;
-      color: #14325C;
-    }
-
-    .step-4-text {
-      position: absolute;
-      width: 230px;
-      height: 28px;
-      left: calc(50% - 230px/2 + 3.5px);
-      top: 525px; /* Shifted down to clear Step 3 */
-      font-style: normal;
-      font-weight: 400;
-      font-size: 13px;
-      line-height: 16px;
-      color: #14325C;
+      left: 30px;
+      top: 40px;
     }
 
     .project-img-1 {
-      position: absolute;
       width: 108px;
       height: 44px;
-      right: 53px;
-      top: 308px; /* Aligned properly with Step 1 text */
-      background: url('decorative_assets/find_sword.png');
-      background-size: contain;
-      background-repeat: no-repeat;
+      flex-shrink: 0;
+      background: url('FIND SWORD.png') center/contain no-repeat;
     }
 
     .project-img-2 {
-      position: absolute;
       width: 145px;
       height: 59px;
-      left: calc(50% - 145px/2 - 39px);
-      top: 380px; /* Adjusted to sit under Step 2 text */
-      background: url('decorative_assets/kill_minotaur.png');
-      background-size: contain;
-      background-repeat: no-repeat;
+      flex-shrink: 0;
+      background: url('KILL MINOTAUR.png') center/contain no-repeat;
     }
 
     .project-img-3 {
-      position: absolute;
       width: 165px;
       height: 77px;
-      right: 12px;
-      top: 458px; /* Adjusted to sit under Step 3 text */
-      background: url('decorative_assets/escape.png');
-      background-size: contain;
-      background-repeat: no-repeat;
+      flex-shrink: 0;
+      background: url('ESCAPE MAZE.png') center/contain no-repeat;
     }
 
     .project-img-4 {
-      position: absolute;
       width: 44px;
       height: 58px;
-      left: calc(50% - 44px/2 - 89.5px);
-      top: 555px; /* Adjusted to sit under Step 4 text */
-      background: url('decorative_assets/enter_palace.png');
-      background-size: contain;
-      background-repeat: no-repeat;
+      flex-shrink: 0;
+      background: url('ENTER PALACE.png') center/contain no-repeat;
     }
 
     .resume-instruction {
@@ -211,7 +189,7 @@
       bottom: 20px;
       width: 100%;
       text-align: center;
-      font-size: 11px;
+      font-size: 14px;
       color: rgba(20, 50, 92, 0.6);
       letter-spacing: 0.05em;
     }
@@ -220,17 +198,17 @@
     /* --- RECONFIGURED SYMBOLS KEY STYLES (MATCHES PAUSE OVERLAY) --- */
     .view-key-btn {
       position: absolute;
-      bottom: 55px;
+      bottom: 65px;
       left: 50%;
       transform: translateX(-50%);
-      width: 201px;
-      height: 36px;
+      width: 240px;
+      height: 44px;
       background: #14325C;
       color: #C1DEE4;
       border: none;
-      border-radius: 18px;
+      border-radius: 22px;
       font-family: 'IM Fell Double Pica', serif;
-      font-size: 13px;
+      font-size: 17px;
       letter-spacing: 0.05em;
       cursor: pointer;
       box-shadow: 0 4px 10px rgba(0,0,0,0.15);
@@ -258,15 +236,15 @@
     /* Text header properties matching .game-paused-title */
     .key-text-header {
       position: absolute;
-      width: 218px;
-      height: 30px;
-      left: calc(50% - 218px/2);
-      top: 122px;
+      width: 260px;
+      height: 40px;
+      left: calc(50% - 260px/2);
+      top: 115px;
       font-family: 'IM Fell Double Pica', serif;
       font-style: normal;
       font-weight: 400;
-      font-size: 24px;
-      line-height: 30px;
+      font-size: 32px;
+      line-height: 40px;
       text-align: center;
       letter-spacing: 0.05em;
       color: #14325C;
@@ -274,15 +252,15 @@
 
     .key-text-sub {
       position: absolute;
-      width: 218px;
-      height: 20px;
-      left: calc(50% - 218px/2);
-      top: 152px;
+      width: 260px;
+      height: 25px;
+      left: calc(50% - 260px/2);
+      top: 160px;
       font-family: 'IM Fell Double Pica', serif;
       font-style: normal;
       font-weight: 400;
-      font-size: 16px;
-      line-height: 20px;
+      font-size: 20px;
+      line-height: 25px;
       text-align: center;
       letter-spacing: 0.05em;
       color: #14325C;
@@ -291,34 +269,33 @@
     /* List Container absolute tracking positions (Matches your Step Texts vertical flow) */
     .key-list-wrapper {
       position: absolute;
-      width: 220px;
-      height: 370px;
-      left: calc(50% - 220px/2);
-      top: 195px;
+      width: 260px;
+      height: 430px;
+      left: calc(50% - 260px/2);
+      top: 220px;
     }
 
     /* Explicit item block rows separated symmetrically to handle labels cleanly */
     .key-row-item {
       position: absolute;
       width: 100%;
-      height: 50px;
+      height: 60px;
       display: flex;
       align-items: center;
     }
 
     /* Individual item offsets calculated to reflect standard layout grids */
     .key-row-item:nth-child(1) { top: 0; }
-    .key-row-item:nth-child(2) { top: 74px; }
-    .key-row-item:nth-child(3) { top: 148px; }
-    .key-row-item:nth-child(4) { top: 222px; }
-    .key-row-item:nth-child(5) { top: 296px; }
+    .key-row-item:nth-child(2) { top: 86px; }
+    .key-row-item:nth-child(3) { top: 172px; }
+    .key-row-item:nth-child(4) { top: 258px; }
+    .key-row-item:nth-child(5) { top: 344px; }
 
     .key-symbol-box {
       box-sizing: border-box;
-      width: 49px;
-      height: 49px;
+      width: 60px;
+      height: 60px;
       border: 1px solid #14325C;
-
       background-size: 100% 100%;
       background-repeat: no-repeat;
       background-position: center;
@@ -326,12 +303,12 @@
     }
 
     .key-symbol-label {
-      margin-left: 20px;
+      margin-left: 24px;
       font-family: 'IM Fell Double Pica', serif;
       font-style: normal;
       font-weight: 400;
-      font-size: 16px;
-      line-height: 39px;
+      font-size: 20px;
+      line-height: 60px;
       color: #14325C;
       letter-spacing: 0.05em;
     }
@@ -349,20 +326,35 @@
       <div class="blur-bg-ellipse"></div>
       <div class="inner-panel-card">
         <img src="logo.svg" alt="LINORINTH" class="logo-vector">
-        <h1 class="game-paused-title">Game Paused</h1>
+        <h1 class="game-paused-title" data-i18n="game_paused">Game Paused</h1>
         <div class="play-polygon-icon"></div>
-        <div class="step-1-text">STEP 1. FIND SWORD</div>
-        <div class="step-2-text">STEP 2. SLAY MINOTAUR</div>
-        <div class="step-3-text">STEP 3. ESCAPE LABYRINTH</div>
-        <div class="step-4-text">STEP 4. ENTER KNOSSOS PALACE</div>
-        <div class="project-img-1"></div>
-        <div class="project-img-2"></div>
-        <div class="project-img-3"></div>
-        <div class="project-img-4"></div>
 
-        <button class="view-key-btn" onclick="openSymbolsKey(event)">VIEW SYMBOLS KEY</button>
+        <div class="tutorial-steps">
 
-        <div class="resume-instruction">TAP ANYWHERE TO RESUME GAME</div>
+          <div class="tutorial-row right">
+            <div class="step-text">STEP 1. FIND SWORD</div>
+            <div class="project-img-1"></div>
+          </div>
+
+          <div class="tutorial-row left">
+            <div class="step-text">STEP 2. SLAY MINOTAUR</div>
+            <div class="project-img-2"></div>
+          </div>
+
+          <div class="tutorial-row right">
+            <div class="step-text">STEP 3. ESCAPE LABYRINTH</div>
+            <div class="project-img-3"></div>
+          </div>
+
+          <div class="tutorial-row left">
+            <div class="step-text">STEP 4. ENTER KNOSSOS PALACE</div>
+            <div class="project-img-4"></div>
+          </div>
+        </div>
+
+        <button class="view-key-btn" onclick="openSymbolsKey(event)" data-i18n="view_key">VIEW SYMBOLS KEY</button>
+
+        <div class="resume-instruction" data-i18n="tap_resume" >TAP ANYWHERE TO RESUME GAME</div>
       </div>
     </div>
 
@@ -372,33 +364,33 @@
       <div class="inner-panel-card">
         <img src="logo.svg" alt="LINORINTH" class="logo-vector">
 
-        <div class="key-text-header">KEY</div>
-        <div class="key-text-sub">TO GAME SYMBOLS</div>
+        <div class="key-text-header" data-i18n="key_header">KEY</div>
+        <div class="key-text-sub" data-i18n="key_sub">TO GAME SYMBOLS</div>
 
         <div class="key-list-wrapper">
           <div class="key-row-item">
             <div class="key-symbol-box" style="background-image: url('decorative_assets/symbols_assets/minitheseus.png');"></div>
-            <span class="key-symbol-label">YOU</span>
+            <span class="key-symbol-label" data-i18n="symbol_you">YOU</span>
           </div>
           <div class="key-row-item">
             <div class="key-symbol-box" style="background-image: url('decorative_assets/symbols_assets/minitaur.png');"></div>
-            <span class="key-symbol-label">MINOTAUR</span>
+            <span class="key-symbol-label" data-i18n="symbol_minotaur">MINOTAUR</span>
           </div>
           <div class="key-row-item">
             <div class="key-symbol-box" style="background-image: url('decorative_assets/symbols_assets/traps.png');"></div>
-            <span class="key-symbol-label">TRAPS</span>
+            <span class="key-symbol-label" data-i18n="symbol_traps">TRAPS</span>
           </div>
           <div class="key-row-item">
             <div class="key-symbol-box" style="background-image: url('decorative_assets/symbols_assets/sword.png');"></div>
-            <span class="key-symbol-label">SWORD</span>
+            <span class="key-symbol-label" data-i18n="symbol_sword">SWORD</span>
           </div>
           <div class="key-row-item">
             <div class="key-symbol-box" style="background-image: url('decorative_assets/symbols_assets/thread.png');"></div>
-            <span class="key-symbol-label">THREAD</span>
+            <span class="key-symbol-label" data-i18n="symbol_thread">THREAD</span>
           </div>
         </div>
 
-        <div class="resume-instruction">TAP ANYWHERE TO RESUME GAME</div>
+        <div class="resume-instruction" data-i18n="tap_resume">TAP ANYWHERE TO RESUME GAME</div>
       </div>
     </div>
   </div>
@@ -425,8 +417,20 @@
     resizeAppFrame();
 
     const QUEUE_H = Math.max(24, Math.floor(H * 0.034));
-    const GAME_H = Math.floor(H * 0.7525);
-    const CTRL_H = H - GAME_H;
+    const GAME_H_CUTSCENE = Math.floor(H * 0.7525);
+    const GAME_H_FULL = H;
+
+    let GAME_H = GAME_H_CUTSCENE;
+    let CTRL_H = H - GAME_H;
+
+    function updateLayout(){
+      GAME_H =
+              (gameState === 'INTRO' || gameState === 'ARIADNE')
+                      ? GAME_H_CUTSCENE
+                      : GAME_H_FULL;
+
+      CTRL_H = H - GAME_H;
+    }
     const CELL = Math.floor(W / 11);
     const COLS = 23, ROWS = 23;
     const MAZE_W = COLS * CELL, MAZE_H = ROWS * CELL;
@@ -511,6 +515,29 @@
       return bfs(mr, mc, tr, tc);
     }
 
+    function releaseJoy(){
+      dragInput.active = false;
+    }
+
+    function drawTheseusFigure(x,y,s,facing,isTheseus,walkPhase=0){
+      const img = isTheseus
+              ? (facing==='left' ? swordLeftImg : swordRightImg)
+              : (facing==='left' ? bodyLeftImg  : bodyRightImg);
+      const loaded = isTheseus
+              ? (facing==='left' ? swordLeftLoaded : swordRightLoaded)
+              : (facing==='left' ? bodyLeftLoaded  : bodyRightLoaded);
+
+      if (!loaded) {
+        drawStickFigure(x,y,s,'#D5E6ED',walkPhase);
+        if (isTheseus) drawSwordOnFigure(x,y,s);
+        return;
+      }
+
+      const h = s*5;
+      const w = h * (img.naturalWidth / img.naturalHeight);
+      ctx.drawImage(img, x - w/2, y + s*1.5 - h, w, h);
+    }
+
     function cellCenter(r,c) { return {x:c*CELL+CELL/2, y:r*CELL+CELL/2}; }
     function worldToCell(x,y) {
       return {r:Math.max(0,Math.min(ROWS-1,Math.floor(y/CELL))), c:Math.max(0,Math.min(COLS-1,Math.floor(x/CELL)))};
@@ -589,11 +616,12 @@
     }
     initTraps();
 
-    const player = {x:0,y:0,r:PLAYER_R,isTheseus:false};
+    const player = {x:0,y:0,r:PLAYER_R,isTheseus:false, facing:'right'};
     const mino   = {x:0,y:0,r:MINO_R,path:[],pathTimer:0};
     let SWORD_X=0, SWORD_Y=0, swordCollected=false;
 
     let gameState='INTRO', theseusTimer=0, lastTime=0, heartPhase=0, minoKilled=false, killFlashTimer=0;
+    updateLayout();
     let introAnim = null;
     let screenFadeAlpha = 0;
     let threadPath=[], threadPlayerCell={r:-1,c:-1};
@@ -616,6 +644,23 @@
     const quitBtnImg = new Image();
     quitBtnImg.onload = () => { quitImgLoaded = true; };
     quitBtnImg.src = 'quit.png';
+
+    let bodyLeftLoaded = false, bodyRightLoaded = false, swordLeftLoaded = false, swordRightLoaded = false;
+    const bodyLeftImg = new Image();
+    bodyLeftImg.onload = () => { bodyLeftLoaded = true; };
+    bodyLeftImg.src = 'theseus_assets/body_left.png';
+
+    const bodyRightImg = new Image();
+    bodyRightImg.onload = () => { bodyRightLoaded = true; };
+    bodyRightImg.src = 'theseus_assets/body_right.png';
+
+    const swordLeftImg = new Image();
+    swordLeftImg.onload = () => { swordLeftLoaded = true; };
+    swordLeftImg.src = 'theseus_assets/sword_left.png';
+
+    const swordRightImg = new Image();
+    swordRightImg.onload = () => { swordRightLoaded = true; };
+    swordRightImg.src = 'theseus_assets/sword_right.png';
 
     let ariadne = {x:0, y:0, r:PLAYER_R, path:[], pathTimer:0};
     let ariadnePhase = null; // null | 'approach' | 'escape'
@@ -649,8 +694,6 @@
     applySpawns();
     startIntro();
 
-    const dpad = {up:false,down:false,left:false,right:false};
-    const dpadTouches = new Map();
     let queuePos = Math.floor(Math.random() * 21) + 20;
     let queueTimer = 15 + Math.random() * 25;
 
@@ -703,26 +746,20 @@
       const rect=canvas.getBoundingClientRect();
       return{x:(cx-rect.left)*(W/rect.width),y:(cy-rect.top)*(H/rect.height)};
     }
-    function getDpadLayout(){
-      const bs=Math.floor(CTRL_H*0.27), gap=50;
-      const cx=W/2, cy=GAME_H+CTRL_H/2;
-      return {bs,
-        up:   {x:cx-bs/2,         y:cy-bs-gap/2, w:bs,h:bs},
-        down: {x:cx-bs/2,         y:cy+gap/2,    w:bs,h:bs},
-        left: {x:cx-bs-gap/2,      y:cy-bs/2,     w:bs,h:bs},
-        right:{x:cx+gap/2,         y:cy-bs/2,     w:bs,h:bs},
-      };
-    }
-    function hitDpad(x,y){
-      const l=getDpadLayout();
-      for(const d of ['up','down','left','right']){const b=l[d];if(x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h)return d;}
-      return null;
-    }
-    function startDpad(x,y,id){const d=hitDpad(x,y);if(d){dpad[d]=true;dpadTouches.set(id,d);}}
-    function endDpad(id){const d=dpadTouches.get(id);if(d!==undefined){dpad[d]=false;dpadTouches.delete(id);}}
-    function releaseJoy(){dpad.up=false;dpad.down=false;dpad.left=false;dpad.right=false;dpadTouches.clear();}
+    // function getDpadLayout(){
+    //   const bs=Math.floor(CTRL_H*0.27), gap=50;
+    //   const cx=W/2, cy=GAME_H+CTRL_H/2;
+    //   return {bs,
+    //     up:   {x:cx-bs/2,         y:cy-bs-gap/2, w:bs,h:bs},
+    //     down: {x:cx-bs/2,         y:cy+gap/2,    w:bs,h:bs},
+    //     left: {x:cx-bs-gap/2,      y:cy-bs/2,     w:bs,h:bs},
+    //     right:{x:cx+gap/2,         y:cy-bs/2,     w:bs,h:bs},
+    //   };
+    // }
 
-    function restartGame(){initSpawns();initTraps();applySpawns();theseusTimer=0;gameState='PLAYING';triviaState=null;releaseJoy();}
+    function restartGame(){initSpawns();initTraps();applySpawns();theseusTimer=0;gameState='PLAYING';
+      updateLayout();
+      triviaState=null;dragInput.active = false;}
 
     function startIntro() {
       const entryR = spawnRoom.r0 + 1, entryC = spawnRoom.c0 + 1;
@@ -766,6 +803,7 @@
 
     function resumeMyGame() {
       gameState = 'PLAYING';
+      updateLayout();
       document.getElementById('pause-overlay').style.display = 'none';
 
       // Always reset view states back to default panel layout on close
@@ -788,11 +826,39 @@
 
     function handleInteraction(x, y, isTouch, touchId) {
       if (gameState === 'INTRO') {
-        applySpawns();
-        zoom = 1;
-        gameState = 'PLAYING';
-        introAnim = null;
-        screenFadeAlpha = 0;
+
+        const skipBtn = getIntroSkipButton();
+
+        if (
+                x >= skipBtn.x &&
+                x <= skipBtn.x + skipBtn.w &&
+                y >= skipBtn.y &&
+                y <= skipBtn.y + skipBtn.h
+        ) {
+          applySpawns();
+          zoom = 1;
+          gameState = 'PLAYING';
+          updateLayout();
+          introAnim = null;
+          screenFadeAlpha = 0;
+        }
+
+        return;
+
+        if (
+                x >= skipX &&
+                x <= skipX + skipW &&
+                y >= skipY &&
+                y <= skipY + skipH
+        ) {
+          applySpawns();
+          zoom = 1;
+          gameState = 'PLAYING';
+          updateLayout();
+          introAnim = null;
+          screenFadeAlpha = 0;
+        }
+
         return;
       }
       if (gameState === 'TRIVIA') {
@@ -812,6 +878,7 @@
         const pauseY = QUEUE_H + 16;
         if (x >= pauseX - 6 && x <= pauseX + btnSize + 6 && y >= pauseY - 6 && y <= pauseY + btnSize + 6) {
           gameState = 'PAUSED';
+          updateLayout();
           document.getElementById('pause-overlay').style.display = 'block';
           releaseJoy();
           return;
@@ -822,7 +889,7 @@
         const shareY = QUEUE_H + 16;
         if (x >= shareX - 6 && x <= shareX + btnSize + 6 && y >= shareY - 6 && y <= shareY + btnSize + 6) {
           if (navigator.share) {
-            navigator.share({ title: 'Linorinth', url: window.location.href });
+            navigator.share({title: 'Linorinth', url: window.location.href});
           } else {
             navigator.clipboard && navigator.clipboard.writeText(window.location.href);
           }
@@ -837,12 +904,12 @@
           return;
         }
 
-        if (y > GAME_H) {
-          if (isTouch) { startDpad(x, y, touchId); }
-          else { mouseDown=true; startDpad(x, y, 'mouse'); }
+        if (isTouch) {
+          startDrag(x, y, touchId);
+        } else {
+          mouseDown = true;
+          startDrag(x, y, 'mouse');
         }
-      } else {
-        handleEndScreenClick(x, y);
       }
     }
 
@@ -853,11 +920,17 @@
     },{passive:false});
     canvas.addEventListener('touchmove',e=>{
       e.preventDefault();
-      // dpad has no drag behaviour
+
+      for(const t of e.changedTouches){
+        const {x,y}=getPos(t.clientX,t.clientY);
+        moveDrag(x,y,t.identifier);
+      }
     },{passive:false});
+
     canvas.addEventListener('touchend',e=>{
-      // if(pinchActive && e.touches.length<2) pinchActive=false;
-      for(const t of e.changedTouches)endDpad(t.identifier);
+      for(const t of e.changedTouches){
+        endDrag(t.identifier);
+      }
     });
 
     let mouseDown=false;
@@ -865,17 +938,23 @@
       const{x,y}=getPos(e.clientX,e.clientY);
       handleInteraction(x, y, false, null);
     });
-    window.addEventListener('mouseup',()=>{mouseDown=false;endDpad('mouse');});
-    // canvas.addEventListener('wheel',e=>{
-    //   e.preventDefault();
-    //   const minZoom=Math.min(W/MAZE_W, GAME_H/MAZE_H);
-    //   zoom=Math.max(minZoom, Math.min(1.0, zoom - e.deltaY * 0.001));
-    // },{passive:false});
+    window.addEventListener('mouseup',()=>{
+      mouseDown=false;
+      endDrag('mouse');
+    });
+    window.addEventListener('mousemove',e=>{
+      if(mouseDown){
+        const {x,y}=getPos(e.clientX,e.clientY);
+        moveDrag(x,y,'mouse');
+      }
+    });
 
     const keys={};
     window.addEventListener('keydown',e=>{
       keys[e.key]=true; if(e.key===' ')e.preventDefault();
-      if(gameState==='INTRO') { applySpawns(); zoom=1; gameState='PLAYING'; introAnim=null; screenFadeAlpha=0; return; }
+      if(gameState==='INTRO') { applySpawns(); zoom=1; gameState='PLAYING';
+        updateLayout();
+        introAnim=null; screenFadeAlpha=0; return; }
       if(gameState==='PAUSED') { resumeMyGame(); return; }
       if(gameState!=='PLAYING'&&gameState!=='ARIADNE'&&(e.key===' '||e.key==='Enter'))restartGame();
     });
@@ -1053,7 +1132,7 @@
         if (anim.blackHold >= 0.7) {
           applySpawns();
           zoom = 1;
-          gameState = 'PLAYING';
+          gameState = 'PLAYING'; updateLayout();
           introAnim = null;
           screenFadeAlpha = 1;
         }
@@ -1066,31 +1145,86 @@
       if(gameState!=='PLAYING' && gameState!=='TRIVIA') return;
 
       if(gameState==='PLAYING'){
-        let kx=0,ky=0;
-        if(keys['ArrowLeft']||keys['a']||keys['A']||dpad.left)kx-=1;
-        if(keys['ArrowRight']||keys['d']||keys['D']||dpad.right)kx+=1;
-        if(keys['ArrowUp']||keys['w']||keys['W']||dpad.up)ky-=1;
-        if(keys['ArrowDown']||keys['s']||keys['S']||dpad.down)ky+=1;
-        const kl=Math.hypot(kx,ky); if(kl>0){kx/=kl;ky/=kl;}
-        player.x+=kx*PLAYER_SPEED*dt;
-        player.y+=ky*PLAYER_SPEED*dt;
+        let kx = 0;
+        let ky = 0;
+
+        if(dragInput.active){
+          const dx = dragInput.curX - dragInput.startX;
+          const dy = dragInput.curY - dragInput.startY;
+
+          const len = Math.hypot(dx, dy);
+
+          if(len > DRAG_DEADZONE){
+            kx = dx / len;
+            ky = dy / len;
+          }
+        }
+
+        const kl = Math.hypot(kx, ky);
+
+        if(kl > 0){
+          kx /= kl;
+          ky /= kl;
+
+          if(kx < -0.05) player.facing = 'left';
+          if(kx >  0.05) player.facing = 'right';
+        }
+
+        player.x += kx * PLAYER_SPEED * dt;
+        player.y += ky * PLAYER_SPEED * dt;
+
         resolveWalls(player);
       }
       if(gameState==='PLAYING'){
-        let kx=0,ky=0;
-        if(keys['ArrowLeft']||keys['a']||keys['A'])kx-=1;
-        if(keys['ArrowRight']||keys['d']||keys['D'])kx+=1;
-        if(keys['ArrowUp']||keys['w']||keys['W'])ky-=1;
-        if(keys['ArrowDown']||keys['s']||keys['S'])ky+=1;
-        const kl=Math.hypot(kx,ky); if(kl>0){kx/=kl;ky/=kl;}
+        let kx = 0;
+        let ky = 0;
+
+        if(keys['ArrowLeft'] || keys['a'] || keys['A']) kx -= 1;
+        if(keys['ArrowRight'] || keys['d'] || keys['D']) kx += 1;
+        if(keys['ArrowUp'] || keys['w'] || keys['W']) ky -= 1;
+        if(keys['ArrowDown'] || keys['s'] || keys['S']) ky += 1;
+
+        const kl = Math.hypot(kx, ky);
+
+        if(kl > 0){
+          kx /= kl;
+          ky /= kl;
+
+          if(kx < -0.05) player.facing = 'left';
+          if(kx >  0.05) player.facing = 'right';
+        }
+
         resolveWalls(player);
 
         for (let i = 0; i < traps.length; i++) {
           const t = traps[i];
           if (!t.cleared && dist(player.x, player.y, t.x, t.y) < CELL * 0.55) {
+            // 1. Pick the random index
             const qIdx = Math.floor(Math.random() * TRIVIA_QUESTIONS.length);
-            triviaState = { trapIndex: i, question: TRIVIA_QUESTIONS[qIdx], selectedIdx: -1, answered: false, correct: false, attempts: 0, btnRects: null, continueBtnRect: null };
+
+            // 2. Get the current active language
+            const currentLang = localStorage.getItem('selectedLanguage') || 'en';
+
+            // 3. Fallback to base English, but overwrite with translation if it exists
+            let selectedQuestion = TRIVIA_QUESTIONS[qIdx];
+            if (translations[currentLang] && translations[currentLang].trivia && translations[currentLang].trivia[qIdx]) {
+              selectedQuestion = translations[currentLang].trivia[qIdx];
+            }
+
+            // 4. Assign the translated question to your state
+            triviaState = {
+              trapIndex: i,
+              question: selectedQuestion,
+              selectedIdx: -1,
+              answered: false,
+              correct: false,
+              attempts: 0,
+              btnRects: null,
+              continueBtnRect: null
+            };
+
             gameState = 'TRIVIA';
+            updateLayout();
             releaseJoy();
             return;
           }
@@ -1112,7 +1246,7 @@
         triviaState.resultTimer -= dt;
         if(triviaState.resultTimer <= 0){
           if(triviaState.correct){
-            triviaState = null; gameState = 'PLAYING';
+            triviaState = null; gameState = 'PLAYING'; updateLayout();
           } else if(triviaState.attempts < 2){
             triviaState.wrongIdx = triviaState.selectedIdx;
             triviaState.answered = false; triviaState.selectedIdx = -1;
@@ -1156,7 +1290,7 @@
             }
             const pick=nearby.length ? nearby[Math.floor(Math.random()*nearby.length)] : {r:pr,c:pc};
             const tc=cellCenter(pick.r,pick.c); threadItemX=tc.x; threadItemY=tc.y;
-            if(gameState==='TRIVIA'){ triviaState=null; gameState='PLAYING'; }
+            if(gameState==='TRIVIA'){ triviaState=null; gameState='PLAYING'; updateLayout();}
           } else { gameState='DEAD'; triviaState=null; }
         }
       }
@@ -1203,6 +1337,14 @@
       }
     }
 
+    function getIntroSkipButton() {
+      const btnW = W * 0.28;
+      const btnH = Math.floor(CTRL_H * 0.30);
+      const x = W - btnW - 16;
+      const y = GAME_H - btnH - 16;
+      return { x, y, w: btnW, h: btnH };
+    }
+
     function drawIntroOverlay() {
       if (!introAnim) return;
       const a = introAnim.textAlpha;
@@ -1212,51 +1354,85 @@
       // Title banner at top
       const ty = QUEUE_H + Math.floor(GAME_H * 0.075);
       ctx.fillStyle = `rgba(10, 20, 38, ${a * 0.78})`;
-      ctx.beginPath(); ctx.roundRect(W * 0.05, ty - 26, W * 0.90, 38, 10); ctx.fill();
+      ctx.beginPath();
+      ctx.roundRect(W * 0.05, ty - 34, W * 0.90, 52, 10);
+      ctx.fill();
+
       ctx.fillStyle = `rgba(213, 230, 237, ${a})`;
-      ctx.font = `bold ${Math.floor(W * 0.042)}px Georgia,serif`;
-      ctx.fillText('— THE LABYRINTH —', W / 2, ty);
+      ctx.font = `bold ${Math.floor(W * 0.055)}px Georgia,serif`;
+      ctx.fillText('— CUTSCENE —', W / 2, ty);
+
+      const skipBtn = getIntroSkipButton();
+
+      ctx.fillStyle = `rgba(252, 176, 117, ${a})`;
+      ctx.beginPath();
+      ctx.roundRect(
+              skipBtn.x,
+              skipBtn.y,
+              skipBtn.w,
+              skipBtn.h,
+              10
+      );
+      ctx.fill();
+
+      ctx.fillStyle = `rgba(28, 53, 94, ${a})`;
+      ctx.font = `bold ${Math.floor(W * 0.055)}px Georgia,serif`;
+      ctx.fillText(
+              'SKIP',
+              skipBtn.x + skipBtn.w / 2,
+              skipBtn.y + skipBtn.h / 2 + Math.floor(W * 0.055 * 0.35)
+      );
 
       // Phase-based instruction near bottom
       const elapsed = introAnim.elapsed;
       let line, color;
+      const currentLang = localStorage.getItem('selectedLanguage') || 'en';
+      const langMap = translations[currentLang] || translations['en'];
       if (elapsed < 3.5) {
-        line  = 'The Minotaur hunts you through the maze...';
+        line  = langMap["hunt_line_1"] || 'The Minotaur hunts you through the maze...';
         color = `rgba(204, 34, 0, ${a})`;
       } else if (elapsed < 7.0) {
-        line  = 'Your heartbeat reveals how close it is!';
+        line  = langMap["hunt_line_2"] || 'Your heartbeat reveals how close it is!';
         color = `rgba(252, 176, 117, ${a})`;
       } else {
-        line  = 'The farther you run, the calmer your heart...';
+        line = langMap["hunt_line_3"] || 'The farther you run, the calmer your heart...';
         color = `rgba(213, 230, 237, ${a})`;
       }
-      // Phase text drawn in the bottom light-blue controls area, wrapped across multiple lines
-      const fontSize = Math.floor(W * 0.076);
-      const lineH    = Math.floor(fontSize * 1.28);
-      const maxW     = W * 0.84;
+
+      const fontSize = Math.floor(W * 0.090);
+      const lineH = Math.floor(fontSize * 1.35);
+      const maxW = W * 0.90;
+
       ctx.fillStyle = color;
       ctx.font = `bold ${fontSize}px Georgia,serif`;
 
-      // Measure how many lines the text will produce so we can vertically centre it
       const words = line.split(' ');
       const lines = [];
       let cur = '';
+
       for (const w of words) {
         const test = cur ? cur + ' ' + w : w;
-        if (ctx.measureText(test).width > maxW && cur) { lines.push(cur); cur = w; }
-        else cur = test;
+
+        if (ctx.measureText(test).width > maxW && cur) {
+          lines.push(cur);
+          cur = w;
+        } else {
+          cur = test;
+        }
       }
+
       if (cur) lines.push(cur);
 
-      const blockH  = lines.length * lineH;
+      const blockH = lines.length * lineH;
       const areaTop = GAME_H;
-      const areaH   = CTRL_H;
-      let textY = areaTop + (areaH - blockH) / 2 + lineH * 0.8;
-      for (const l of lines) { ctx.fillText(l, W / 2, textY); textY += lineH; }
+      const areaH = CTRL_H;
 
-      ctx.fillStyle = `rgba(28, 53, 94, ${a * 0.55})`;
-      ctx.font = `italic ${Math.floor(W * 0.030)}px Georgia,serif`;
-      ctx.fillText('Tap anywhere to skip', W / 2, areaTop + areaH * 0.92);
+      let textY = areaTop + (areaH - blockH) / 2 + lineH * 0.8;
+
+      for (const l of lines) {
+        ctx.fillText(l, W / 2, textY);
+        textY += lineH;
+      }
     }
 
     function drawTrap(x, y) {
@@ -1301,94 +1477,206 @@
 
     function drawTriviaOverlay() {
       if (!triviaState) return;
+
       const { question, selectedIdx, answered } = triviaState;
-      const pad = W * 0.06;
+
+      const pad = W * 0.04; // was 0.06
       const maxW = W - pad * 2;
 
-      // Light full-screen tint so maze stays visible
       ctx.fillStyle = 'rgba(10, 20, 38, 0.38)';
       ctx.fillRect(0, QUEUE_H, W, GAME_H - QUEUE_H);
 
       ctx.textAlign = 'center';
-      let y = QUEUE_H + Math.floor(GAME_H * 0.04);
 
+      let y = QUEUE_H + Math.floor(GAME_H * 0.035);
+
+      // TRAP HEADER
       ctx.fillStyle = '#cc2200';
-      ctx.font = `bold ${Math.floor(W * 0.062)}px Georgia,serif`;
-      ctx.fillText('⚠  TRAP!', W / 2, y + 22);
-      y += 44;
+      ctx.font = `bold ${Math.floor(W * 0.09)}px Georgia,serif`;
+      ctx.fillText('⚠  TRAP!', W / 2, y + 26);
 
+      y += 68;
+
+      // SUBTITLE
       ctx.fillStyle = '#D5E6ED';
-      ctx.font = `${Math.floor(W * 0.036)}px Georgia,serif`;
+      ctx.font = `${Math.floor(W * 0.052)}px Georgia,serif`;
+
       if (!(answered && triviaState.correct)) {
         const attemptsLeft = 2 - triviaState.attempts;
-        ctx.fillText(attemptsLeft === 2 ? 'Answer correctly to escape!' : '⚠ Last chance — wrong answer restarts the game!', W / 2, y);
+
+        ctx.fillText(
+                attemptsLeft === 2
+                        ? 'Answer correctly to escape!'
+                        : '⚠ Last chance — wrong answer restarts the game!',
+                W / 2,
+                y
+        );
       }
-      y += Math.floor(GAME_H * 0.03);
+
+      y += Math.floor(GAME_H * 0.04);
+
+      // QUESTION
+      const hasImg = !!question.img;
 
       ctx.fillStyle = '#FCB075';
-      const hasImg = !!question.img;
-      ctx.font = `bold ${Math.floor(W * (hasImg ? 0.038 : 0.042))}px Georgia,serif`;
-      y = wrapText(question.q, maxW, Math.floor(W * (hasImg ? 0.046 : 0.05)), y);
-      y += Math.floor(GAME_H * (hasImg ? 0.010 : 0.018));
+      ctx.font = `bold ${Math.floor(
+              W * (hasImg ? 0.058 : 0.064)
+      )}px Georgia,serif`;
 
+      y = wrapText(
+              question.q,
+              maxW,
+              Math.floor(W * (hasImg ? 0.068 : 0.074)),
+              y
+      );
+
+      y += Math.floor(GAME_H * 0.02);
+
+      // IMAGE
       if (hasImg) {
         const entry = getTriviaImg(question.img);
-        const imgH = Math.floor(GAME_H * 0.22);
+
+        const imgH = Math.floor(GAME_H * 0.28); // was 0.22
         const imgW = maxW;
+
         ctx.fillStyle = 'rgba(0,0,0,0.3)';
-        ctx.beginPath(); ctx.roundRect(pad, y, imgW, imgH, 8); ctx.fill();
-        const imgReady = entry.loaded || (!entry.error && entry.img.complete && entry.img.naturalWidth > 0);
+        ctx.beginPath();
+        ctx.roundRect(pad, y, imgW, imgH, 10);
+        ctx.fill();
+
+        const imgReady =
+                entry.loaded ||
+                (!entry.error &&
+                        entry.img.complete &&
+                        entry.img.naturalWidth > 0);
+
         if (imgReady) {
-          const scale = Math.min(imgW / entry.img.naturalWidth, imgH / entry.img.naturalHeight);
-          const dw = entry.img.naturalWidth * scale, dh = entry.img.naturalHeight * scale;
-          ctx.drawImage(entry.img, pad + (imgW - dw) / 2, y + (imgH - dh) / 2, dw, dh);
+          const scale = Math.min(
+                  imgW / entry.img.naturalWidth,
+                  imgH / entry.img.naturalHeight
+          );
+
+          const dw = entry.img.naturalWidth * scale;
+          const dh = entry.img.naturalHeight * scale;
+
+          ctx.drawImage(
+                  entry.img,
+                  pad + (imgW - dw) / 2,
+                  y + (imgH - dh) / 2,
+                  dw,
+                  dh
+          );
         } else {
           ctx.fillStyle = 'rgba(213,230,237,0.4)';
-          ctx.font = `${Math.floor(W * 0.034)}px Georgia,serif`;
-          ctx.fillText(entry.error ? `[ failed: ${question.img} ]` : `[ loading: ${question.img} ]`, W / 2, y + imgH / 2);
+          ctx.font = `${Math.floor(W * 0.045)}px Georgia,serif`;
+
+          ctx.fillText(
+                  entry.error
+                          ? `[ failed: ${question.img} ]`
+                          : `[ loading: ${question.img} ]`,
+                  W / 2,
+                  y + imgH / 2
+          );
         }
-        y += imgH + Math.floor(GAME_H * 0.012);
+
+        y += imgH + Math.floor(GAME_H * 0.018);
       }
 
-      const btnH = Math.floor(GAME_H * (hasImg ? 0.082 : 0.098));
-      const btnGap = Math.floor(GAME_H * 0.016);
+      // ANSWERS
+      const btnH = Math.floor(
+              GAME_H * (hasImg ? 0.125 : 0.14)
+      );
+
+      const btnGap = Math.floor(GAME_H * 0.018);
+
       triviaState.btnRects = [];
 
       for (let i = 0; i < 4; i++) {
-        const bx = pad, by = y;
-        triviaState.btnRects.push({ x: bx, y: by, w: maxW, h: btnH });
+        const bx = pad;
+        const by = y;
 
-        let bg = 'rgba(28, 53, 94, 0.78)', border = '#556B85', tc = '#D5E6ED';
+        triviaState.btnRects.push({
+          x: bx,
+          y: by,
+          w: maxW,
+          h: btnH
+        });
+
+        let bg = 'rgba(28, 53, 94, 0.78)';
+        let border = '#556B85';
+        let tc = '#D5E6ED';
+
         if (answered) {
-          if (triviaState.correct && i === question.a) { bg = 'rgba(20, 110, 55, 0.82)'; border = '#4CAF50'; tc = '#fff'; }
-          else if (i === selectedIdx && i !== question.a) { bg = 'rgba(150, 28, 28, 0.82)'; border = '#cc2200'; tc = '#fff'; }
+          if (triviaState.correct && i === question.a) {
+            bg = 'rgba(20, 110, 55, 0.82)';
+            border = '#4CAF50';
+            tc = '#fff';
+          } else if (i === selectedIdx && i !== question.a) {
+            bg = 'rgba(150, 28, 28, 0.82)';
+            border = '#cc2200';
+            tc = '#fff';
+          }
         } else if (i === selectedIdx) {
-          bg = 'rgba(55, 88, 140, 0.85)'; border = '#FCB075';
+          bg = 'rgba(55, 88, 140, 0.85)';
+          border = '#FCB075';
         } else if (i === triviaState.wrongIdx) {
-          bg = 'rgba(150, 28, 28, 0.82)'; border = '#cc2200'; tc = '#fff';
+          bg = 'rgba(150, 28, 28, 0.82)';
+          border = '#cc2200';
+          tc = '#fff';
         }
 
         ctx.fillStyle = bg;
-        ctx.beginPath(); ctx.roundRect(bx, by, maxW, btnH, 10); ctx.fill();
-        ctx.strokeStyle = border; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.roundRect(bx, by, maxW, btnH, 10); ctx.stroke();
+        ctx.beginPath();
+        ctx.roundRect(bx, by, maxW, btnH, 12);
+        ctx.fill();
+
+        ctx.strokeStyle = border;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(bx, by, maxW, btnH, 12);
+        ctx.stroke();
 
         ctx.fillStyle = tc;
-        ctx.font = `${Math.floor(W * 0.038)}px Georgia,serif`;
-        ctx.fillText(question.opts[i], W / 2, by + btnH * 0.63);
+        ctx.font = `${Math.floor(W * 0.055)}px Georgia,serif`;
+
+        ctx.fillText(
+                question.opts[i],
+                W / 2,
+                by + btnH * 0.66
+        );
+
         y += btnH + btnGap;
       }
 
-      if (answered && !triviaState.correct && triviaState.attempts >= 2) {
-        y += 4;
-        const cbtnH = Math.floor(GAME_H * 0.09);
+      // RESTART BUTTON
+      if (
+              answered &&
+              !triviaState.correct &&
+              triviaState.attempts >= 2
+      ) {
+        y += 6;
+
+        const cbtnH = Math.floor(GAME_H * 0.13);
+
         ctx.fillStyle = 'rgba(100, 35, 35, 0.82)';
-        ctx.beginPath(); ctx.roundRect(pad, y, maxW, cbtnH, 10); ctx.fill();
-        ctx.strokeStyle = '#cc2200'; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.roundRect(pad, y, maxW, cbtnH, 10); ctx.stroke();
+        ctx.beginPath();
+        ctx.roundRect(pad, y, maxW, cbtnH, 12);
+        ctx.fill();
+
+        ctx.strokeStyle = '#cc2200';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(pad, y, maxW, cbtnH, 12);
+        ctx.stroke();
+
         ctx.fillStyle = '#fff';
-        ctx.font = `bold ${Math.floor(W * 0.04)}px Georgia,serif`;
-        ctx.fillText('✗  Restarting...', W / 2, y + cbtnH * 0.63);
+        ctx.font = `bold ${Math.floor(W * 0.06)}px Georgia,serif`;
+
+        ctx.fillText(
+                '✗ Restarting...',
+                W / 2,
+                y + cbtnH * 0.66
+        );
       }
     }
 
@@ -1545,25 +1833,60 @@
       ctx.strokeStyle='#1C355E';ctx.lineWidth=3;ctx.strokeRect(0,0,MAZE_W,MAZE_H);
     }
 
-    function drawControls(){
-      ctx.strokeStyle='rgba(28,53,94,0.15)';ctx.lineWidth=1;
-      ctx.beginPath();ctx.moveTo(0,GAME_H);ctx.lineTo(W,GAME_H);ctx.stroke();
-      const l=getDpadLayout(), bs=l.bs;
-      for(const dir of ['up','down','left','right']){
-        const b=l[dir], pressed=dpad[dir];
-        const rad=Math.min(b.w,b.h)*0.18;
-        ctx.beginPath();ctx.roundRect(b.x,b.y,b.w,b.h,rad);
-        ctx.fillStyle=pressed?'rgba(28,53,94,0.18)':'rgba(28,53,94,0.52)';
-        ctx.fill();
-        ctx.strokeStyle='rgba(28,53,94,0.65)';ctx.lineWidth=1.5;ctx.stroke();
-        const cx=b.x+b.w/2, cy=b.y+b.h/2, as=bs*0.27;
-        ctx.fillStyle=pressed?'rgba(213,230,237,0.4)':'rgba(213,230,237,0.9)';
-        ctx.beginPath();
-        if(dir==='up'){   ctx.moveTo(cx,cy-as);ctx.lineTo(cx+as,cy+as*0.62);ctx.lineTo(cx-as,cy+as*0.62);}
-        else if(dir==='down'){ ctx.moveTo(cx,cy+as);ctx.lineTo(cx-as,cy-as*0.62);ctx.lineTo(cx+as,cy-as*0.62);}
-        else if(dir==='left'){ ctx.moveTo(cx-as,cy);ctx.lineTo(cx+as*0.62,cy-as);ctx.lineTo(cx+as*0.62,cy+as);}
-        else{              ctx.moveTo(cx+as,cy);ctx.lineTo(cx-as*0.62,cy-as);ctx.lineTo(cx-as*0.62,cy+as);}
-        ctx.closePath();ctx.fill();
+    // function drawControls(){
+    //   ctx.strokeStyle='rgba(28,53,94,0.15)';ctx.lineWidth=1;
+    //   ctx.beginPath();ctx.moveTo(0,GAME_H);ctx.lineTo(W,GAME_H);ctx.stroke();
+    //   const l=getDpadLayout(), bs=l.bs;
+    //   for(const dir of ['up','down','left','right']){
+    //     const b=l[dir], pressed=dpad[dir];
+    //     const rad=Math.min(b.w,b.h)*0.18;
+    //     ctx.beginPath();ctx.roundRect(b.x,b.y,b.w,b.h,rad);
+    //     ctx.fillStyle=pressed?'rgba(28,53,94,0.18)':'rgba(28,53,94,0.52)';
+    //     ctx.fill();
+    //     ctx.strokeStyle='rgba(28,53,94,0.65)';ctx.lineWidth=1.5;ctx.stroke();
+    //     const cx=b.x+b.w/2, cy=b.y+b.h/2, as=bs*0.27;
+    //     ctx.fillStyle=pressed?'rgba(213,230,237,0.4)':'rgba(213,230,237,0.9)';
+    //     ctx.beginPath();
+    //     if(dir==='up'){   ctx.moveTo(cx,cy-as);ctx.lineTo(cx+as,cy+as*0.62);ctx.lineTo(cx-as,cy+as*0.62);}
+    //     else if(dir==='down'){ ctx.moveTo(cx,cy+as);ctx.lineTo(cx-as,cy-as*0.62);ctx.lineTo(cx+as,cy-as*0.62);}
+    //     else if(dir==='left'){ ctx.moveTo(cx-as,cy);ctx.lineTo(cx+as*0.62,cy-as);ctx.lineTo(cx+as*0.62,cy+as);}
+    //     else{              ctx.moveTo(cx+as,cy);ctx.lineTo(cx-as*0.62,cy-as);ctx.lineTo(cx-as*0.62,cy+as);}
+    //     ctx.closePath();ctx.fill();
+    //   }
+    // }
+
+    const DRAG_DEADZONE = 12;
+
+    let dragInput = {
+      active:false,
+      id:null,
+      startX:0,
+      startY:0,
+      curX:0,
+      curY:0
+    };
+
+    function startDrag(x,y,id){
+      dragInput = {
+        active:true,
+        id,
+        startX:x,
+        startY:y,
+        curX:x,
+        curY:y
+      };
+    }
+
+    function moveDrag(x,y,id){
+      if(dragInput.active && dragInput.id===id){
+        dragInput.curX=x;
+        dragInput.curY=y;
+      }
+    }
+
+    function endDrag(id){
+      if(dragInput.active && dragInput.id===id){
+        dragInput.active=false;
       }
     }
 
@@ -1572,14 +1895,20 @@
       ctx.fillRect(0,0,W,QUEUE_H);
       ctx.fillStyle='#FCB075';
       ctx.textAlign='center';
-      ctx.font=`bold ${Math.floor(QUEUE_H*0.58)}px Georgia,serif`;
-      ctx.fillText(`Virtual Queue Position: ${queuePos}`,W/2,QUEUE_H*0.72);
+
+      ctx.font=`bold ${Math.floor(QUEUE_H*0.72)}px Georgia,serif`;
+
+      ctx.fillText(
+              `Virtual Queue Position: ${queuePos}`,
+              W/2,
+              QUEUE_H*0.76
+      );
     }
 
     function drawFloatingPauseButton() {
-      const btnSize = Math.floor(CELL * 1.1);
-      const btnX = W - btnSize - 16;
-      const btnY = QUEUE_H + 16;
+      const btnSize = Math.floor(CELL * 1.45);
+      const btnX = W - btnSize - 12;
+      const btnY = QUEUE_H + 20;
 
       ctx.save();
       ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
@@ -1591,19 +1920,21 @@
       } else {
         ctx.fillStyle = 'rgba(28, 53, 94, 0.9)';
         ctx.beginPath();
-        ctx.roundRect(btnX, btnY, btnSize, btnSize, 8);
+        ctx.roundRect(btnX, btnY, btnSize, btnSize, 10);
         ctx.fill();
 
         ctx.strokeStyle = '#FCB075';
-        ctx.lineWidth = 2.5;
+        ctx.lineWidth = 3;
         ctx.stroke();
 
         ctx.fillStyle = '#FCB075';
-        const pw = btnSize * 0.18;
-        const ph = btnSize * 0.5;
+
+        const pw = btnSize * 0.26;
+        const ph = btnSize * 0.66;
+
         const py = btnY + (btnSize - ph) / 2;
-        const px1 = btnX + (btnSize - pw * 2.6) / 2;
-        const px2 = px1 + pw * 1.6;
+        const px1 = btnX + (btnSize - pw * 2.9) / 2;
+        const px2 = px1 + pw * 1.9;
 
         ctx.fillRect(px1, py, pw, ph);
         ctx.fillRect(px2, py, pw, ph);
@@ -1612,49 +1943,49 @@
     }
 
     function drawFloatingShareButton() {
-      const btnSize = Math.floor(CELL * 1.1);
-      const pauseX = W - btnSize - 16;
-      const btnX = pauseX - btnSize - 8;
-      const btnY = QUEUE_H + 16;
+      const btnSize = Math.floor(CELL * 1.45);
+      const pauseX = W - btnSize - 20;
+      const btnX = pauseX - btnSize - 12;
+      const btnY = QUEUE_H + 20;
 
       ctx.save();
       ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
-      ctx.shadowBlur = 8;
-      ctx.shadowOffsetY = 4;
+      ctx.shadowBlur = 10;
+      ctx.shadowOffsetY = 5;
 
       ctx.fillStyle = 'rgba(28, 53, 94, 0.9)';
       ctx.beginPath();
-      ctx.roundRect(btnX, btnY, btnSize, btnSize, 8);
+      ctx.roundRect(btnX, btnY, btnSize, btnSize, 10);
       ctx.fill();
 
       ctx.strokeStyle = '#FCB075';
-      ctx.lineWidth = 2.5;
+      ctx.lineWidth = 3;
       ctx.stroke();
 
       // iOS-style share icon: upward arrow from a box
       ctx.strokeStyle = '#FCB075';
-      ctx.lineWidth = 2.5;
+      ctx.lineWidth = 3;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
 
       const cx = btnX + btnSize / 2;
       const cy = btnY + btnSize / 2;
-      const s = btnSize * 0.28;
+      const s = btnSize * 0.30;
 
-      // Arrow stem (starts inside box, rises above it)
+      // Arrow stem
       ctx.beginPath();
       ctx.moveTo(cx, cy + s * 0.7);
       ctx.lineTo(cx, cy - s * 0.9);
       ctx.stroke();
 
-      // Arrow head (tip clearly above box top)
+      // Arrow head
       ctx.beginPath();
       ctx.moveTo(cx - s * 0.6, cy - s * 0.3);
       ctx.lineTo(cx, cy - s * 1.1);
       ctx.lineTo(cx + s * 0.6, cy - s * 0.3);
       ctx.stroke();
 
-      // Box (U-shape open at top where arrow exits)
+      // Box
       ctx.beginPath();
       ctx.moveTo(cx - s * 0.8, cy + s * 0.1);
       ctx.lineTo(cx - s * 0.8, cy + s * 1.3);
@@ -1666,14 +1997,14 @@
     }
 
     function drawFloatingQuitButton() {
-      const btnSize = Math.floor(CELL * 1.1);
-      const btnX = 16;
-      const btnY = QUEUE_H + 16;
+      const btnSize = Math.floor(CELL * 1.45);
+      const btnX = 20;
+      const btnY = QUEUE_H + 20;
 
       ctx.save();
       ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
-      ctx.shadowBlur = 8;
-      ctx.shadowOffsetY = 4;
+      ctx.shadowBlur = 10;
+      ctx.shadowOffsetY = 5;
 
       let quitImgLoaded;
       if (quitImgLoaded) {
@@ -1681,15 +2012,15 @@
       } else {
         ctx.fillStyle = 'rgba(28, 53, 94, 0.9)';
         ctx.beginPath();
-        ctx.roundRect(btnX, btnY, btnSize, btnSize, 8);
+        ctx.roundRect(btnX, btnY, btnSize, btnSize, 10);
         ctx.fill();
 
         ctx.strokeStyle = '#FCB075';
-        ctx.lineWidth = 2.5;
+        ctx.lineWidth = 3;
         ctx.stroke();
 
         ctx.strokeStyle = '#FCB075';
-        ctx.lineWidth = 3.5;
+        ctx.lineWidth = 4;
         ctx.lineCap = 'round';
 
         const pad = btnSize * 0.28;
@@ -1804,46 +2135,70 @@
         ctx.restore();
       }
       if(ariadnePhase) drawAriadne(ariadne.x,ariadne.y,CELL*0.38,escapeWalkPhase);
-      drawStickFigure(player.x,player.y,CELL*0.38,'#D5E6ED',ariadnePhase==='escape'?escapeWalkPhase:0);
-      if(player.isTheseus) drawSwordOnFigure(player.x,player.y,CELL*0.38);
+      drawTheseusFigure(
+              player.x,
+              player.y,
+              CELL*0.38,
+              player.facing || 'right',
+              player.isTheseus,
+              ariadnePhase === 'escape'
+                      ? escapeWalkPhase
+                      : 0
+      );
 
       ctx.restore();
 
       if(theseusTimer>0){
         const a=Math.min(1,theseusTimer);
-        const bx=W*0.05,by=GAME_H*0.38,bw=W*0.9,bh=GAME_H*0.20;
-        ctx.fillStyle=`rgba(28, 53, 94, ${a*0.85})`;ctx.fillRect(bx,by,bw,bh);
-        ctx.fillStyle=`rgba(252, 176, 117, ${a})`;ctx.textAlign='center';
-        ctx.font=`bold ${Math.floor(W*0.056)}px Georgia,serif`;
-        ctx.fillText('You have now become',W/2,by+bh*0.44);
-        ctx.fillText('Theseus!',W/2,by+bh*0.82);
+        const bx=W*0.04,by=GAME_H*0.34,bw=W*0.92,bh=GAME_H*0.24;
+        ctx.fillStyle=`rgba(28, 53, 94, ${a*0.85})`;
+        ctx.fillRect(bx,by,bw,bh);
+
+        ctx.fillStyle=`rgba(252, 176, 117, ${a})`;
+        ctx.textAlign='center';
+
+        ctx.font=`bold ${Math.floor(W*0.072)}px Georgia,serif`;
+        ctx.fillText('You have now become',W/2,by+bh*0.42);
+        ctx.fillText('Theseus!',W/2,by+bh*0.78);
       }
 
       if(killFlashTimer>0){
         const a=Math.min(1,killFlashTimer);
-        const bx=W*0.05,by=GAME_H*0.35,bw=W*0.9,bh=GAME_H*0.24;
-        ctx.fillStyle=`rgba(28, 53, 94, ${a*0.88})`;ctx.fillRect(bx,by,bw,bh);
-        ctx.fillStyle=`rgba(220, 50, 50, ${a})`;ctx.textAlign='center';
-        ctx.font=`bold ${Math.floor(W*0.047)}px Georgia,serif`;
+        const bx=W*0.04,by=GAME_H*0.32,bw=W*0.92,bh=GAME_H*0.28;
+
+        ctx.fillStyle=`rgba(28, 53, 94, ${a*0.88})`;
+        ctx.fillRect(bx,by,bw,bh);
+
+        ctx.fillStyle=`rgba(220, 50, 50, ${a})`;
+        ctx.textAlign='center';
+        ctx.font=`bold ${Math.floor(W*0.060)}px Georgia,serif`;
         ctx.fillText('You killed the Minotaur.',W/2,by+bh*0.38);
+
         ctx.fillStyle=`rgba(213, 230, 237, ${a})`;
-        ctx.font=`${Math.floor(W*0.042)}px Georgia,serif`;
-        ctx.fillText('Now exit the maze!',W/2,by+bh*0.72);
+        ctx.font=`${Math.floor(W*0.054)}px Georgia,serif`;
+        ctx.fillText('Now exit the maze!',W/2,by+bh*0.74);
       }
 
       if(ariadnePhase==='approach'){
-        const bx=W*0.05,by=GAME_H*0.28,bw=W*0.9,bh=GAME_H*0.24;
-        ctx.fillStyle='rgba(28, 53, 94, 0.88)';ctx.fillRect(bx,by,bw,bh);
-        ctx.fillStyle='#FCB075';ctx.textAlign='center';
-        ctx.font=`bold ${Math.floor(W*0.044)}px Georgia,serif`;
+        const bx=W*0.04,by=GAME_H*0.24,bw=W*0.92,bh=GAME_H*0.30;
+
+        ctx.fillStyle='rgba(28, 53, 94, 0.88)';
+        ctx.fillRect(bx,by,bw,bh);
+
+        ctx.fillStyle='#FCB075';
+        ctx.textAlign='center';
+
+        ctx.font=`bold ${Math.floor(W*0.056)}px Georgia,serif`;
         ctx.fillText("You're now at the front of the line!",W/2,by+bh*0.38);
-        ctx.font=`${Math.floor(W*0.038)}px Georgia,serif`;
-        ctx.fillText('Ariadne has come to save you!',W/2,by+bh*0.72);
+
+        ctx.font=`${Math.floor(W*0.050)}px Georgia,serif`;
+        ctx.fillText('Ariadne has come to save you!',W/2,by+bh*0.74);
       }
 
-      ctx.fillStyle='#D5E6ED';ctx.fillRect(0,GAME_H,W,CTRL_H);
-      if(gameState==='PLAYING') drawControls();
-      if (gameState !== 'INTRO') drawControls();
+      if (CTRL_H > 0) {
+        ctx.fillStyle='#D5E6ED';
+        ctx.fillRect(0,GAME_H,W,CTRL_H);
+      }
 
       if (gameState === 'WIN') {
         window.location.href = 'victory.html';
