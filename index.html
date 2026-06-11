@@ -484,6 +484,32 @@
 
     const DMAP = [{dr:-1,dc:0,bit:1},{dr:0,dc:1,bit:2},{dr:1,dc:0,bit:4},{dr:0,dc:-1,bit:8}];
 
+    // Braid the maze: knock down most dead ends to create loops, giving
+    // the player more routes around the Minotaur instead of getting trapped.
+    (function braid() {
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const cell = idx(r, c);
+          const degree = (maze[cell]&1?1:0)+(maze[cell]&2?1:0)+(maze[cell]&4?1:0)+(maze[cell]&8?1:0);
+          if (degree !== 1) continue;
+          if (Math.random() < 0.95) continue; // leave a few dead ends for variety
+
+          const candidates = [];
+          for (const d of DMAP) {
+            const nr = r+d.dr, nc = c+d.dc;
+            if (nr<0||nr>=ROWS||nc<0||nc>=COLS) continue;
+            if (maze[cell] & d.bit) continue; // already connected
+            candidates.push(d);
+          }
+          if (!candidates.length) continue;
+          const d = candidates[Math.floor(Math.random()*candidates.length)];
+          const ob = d.bit===1?4 : d.bit===2?8 : d.bit===4?1 : 2;
+          maze[cell] |= d.bit;
+          maze[idx(r+d.dr, c+d.dc)] |= ob;
+        }
+      }
+    })();
+
     function bfs(sr, sc, er, ec) {
       const prev = new Int16Array(ROWS*COLS).fill(-1), vis = new Uint8Array(ROWS*COLS);
       const q = [idx(sr,sc)]; vis[idx(sr,sc)] = 1;
@@ -616,8 +642,6 @@
     const NUM_TRAPS = 20;
     let traps = [];
     let triviaState = null;
-    const triviaMusic = new Audio('Kahoot Question Theme.mp3');
-    triviaMusic.loop = true;
 
     function initTraps() {
       traps = [];
@@ -640,6 +664,7 @@
     let threadPath=[], threadPlayerCell={r:-1,c:-1};
     let threadItemX=0, threadItemY=0, threadCollected=false;
     let minimapAlpha = 0.9;
+    let minimapAtBottom = true;
     let zoom = 1.0;
 
     let pauseImgLoaded = false;
@@ -1205,6 +1230,9 @@
 
           if(kx < -0.05) player.facing = 'left';
           if(kx >  0.05) player.facing = 'right';
+
+          player.x += kx * PLAYER_SPEED * dt;
+          player.y += ky * PLAYER_SPEED * dt;
         }
 
         resolveWalls(player);
@@ -1239,8 +1267,6 @@
             gameState = 'TRIVIA';
             updateLayout();
             releaseJoy();
-            triviaMusic.currentTime = 0;
-            triviaMusic.play().catch(() => {});
             return;
           }
         }
@@ -1262,18 +1288,16 @@
         if(triviaState.resultTimer <= 0){
           if(triviaState.correct){
             triviaState = null; gameState = 'PLAYING'; updateLayout();
-            triviaMusic.pause(); triviaMusic.currentTime = 0;
           } else if(triviaState.attempts < 2){
             triviaState.wrongIdx = triviaState.selectedIdx;
             triviaState.answered = false; triviaState.selectedIdx = -1;
           } else {
-            triviaMusic.pause(); triviaMusic.currentTime = 0;
             restartGame();
           }
         }
       }
 
-      if(!minoKilled){
+      if(!minoKilled && gameState !== 'TRIVIA'){
         const heartDist = dist(player.x, player.y, mino.x, mino.y);
         const heartT = 1 - Math.min(1, heartDist / (CELL * 14));
         const bps = 0.1 + heartT * 3.4;
@@ -1339,13 +1363,9 @@
         const mmWidth  = Math.floor(MAZE_W / 6 * 1.32);
         const mmHeight = Math.floor(MAZE_H / 6 * 1.32);
         const mmX = 8, mmY = GAME_H - mmHeight - 8;
-        const psx = (player.x - camX) * zoom + W / 2;
-        const psy = (player.y - camY) * zoom + GAME_H / 2;
         const msx = (mino.x - camX) * zoom + W / 2;
         const msy = (mino.y - camY) * zoom + GAME_H / 2;
-        const playerOverlaps = psx >= mmX - 20 && psx <= mmX + mmWidth && psy >= mmY && psy <= mmY + mmHeight;
-        const minoOverlaps   = msx >= mmX && msx <= mmX + mmWidth && msy >= mmY && msy <= mmY + mmHeight;
-        const overlaps = playerOverlaps || minoOverlaps || (player.x < 400 && player.y > 550);
+        const overlaps = msx >= mmX && msx <= mmX + mmWidth && msy >= mmY && msy <= mmY + mmHeight;
         const target = overlaps ? 0 : 0.9;
         const speed = 0.6 / 0.2;
         minimapAlpha = overlaps
@@ -1373,7 +1393,7 @@
       ctx.beginPath(); ctx.roundRect(W * 0.05, ty - 26, W * 0.90, 38, 10); ctx.fill();
       ctx.fillStyle = `rgba(213, 230, 237, ${a})`;
       ctx.font = `bold ${Math.floor(W * 0.042)}px Georgia,serif`;
-      ctx.fillText('— THE LABYRINTH —', W / 2, ty);
+      ctx.fillText('— TUTORIAL —', W / 2, ty);
 
       const skipBtn = getIntroSkipButton();
 
@@ -1435,9 +1455,6 @@
       let textY = areaTop + (areaH - blockH) / 2 + lineH * 0.8;
       for (const l of lines) { ctx.fillText(l, W / 2, textY); textY += lineH; }
 
-      ctx.fillStyle = `rgba(28, 53, 94, ${a * 0.55})`;
-      ctx.font = `italic ${Math.floor(W * 0.030)}px Georgia,serif`;
-      ctx.fillText('Tap anywhere to skip', W / 2, areaTop + areaH * 0.92);
     }
 
     function drawTrap(x, y) {
@@ -1655,11 +1672,27 @@
       ctx.restore();
     }
 
-    function drawMinimap() {
+    function drawMinimap(camY) {
       const mmWidth  = Math.floor(MAZE_W / 6 * 1.32);
       const mmHeight = Math.floor(MAZE_H / 6 * 1.32);
-      const mmX = 8;
-      const mmY = GAME_H - mmHeight - 8;
+
+      const playerScreenY = (player.y - camY) * zoom + GAME_H / 2;
+      if (playerScreenY > GAME_H * 0.75) {
+        minimapAtBottom = false;
+      } else if (playerScreenY < GAME_H * 0.35) {
+        minimapAtBottom = true;
+      }
+
+      let mmX, mmY;
+      if (minimapAtBottom) {
+        mmX = 8;
+        mmY = GAME_H - mmHeight - 8;
+      } else {
+        // Move minimap below the quit (X) button
+        const btnSize = Math.floor(CELL * 1.1);
+        mmX = 16;
+        mmY = QUEUE_H + 16 + btnSize + 8;
+      }
       const scale = mmWidth / MAZE_W;
 
       ctx.save();
@@ -1792,12 +1825,42 @@
       ctx.fillText(`Virtual Queue Position: ${queuePos}`,W/2,QUEUE_H*0.72);
     }
 
+    const JOY_RADIUS = 55;
+
+    function drawVirtualJoystick(){
+      if(!dragInput.active) return;
+
+      const dx = dragInput.curX - dragInput.startX;
+      const dy = dragInput.curY - dragInput.startY;
+      const dist = Math.hypot(dx, dy);
+      const clamped = Math.min(dist, JOY_RADIUS);
+      const angle = Math.atan2(dy, dx);
+      const knobX = dist > 0 ? dragInput.startX + Math.cos(angle) * clamped : dragInput.startX;
+      const knobY = dist > 0 ? dragInput.startY + Math.sin(angle) * clamped : dragInput.startY;
+
+      ctx.save();
+      ctx.fillStyle = 'rgba(213,230,237,0.18)';
+      ctx.strokeStyle = 'rgba(213,230,237,0.5)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(dragInput.startX, dragInput.startY, JOY_RADIUS, 0, Math.PI*2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(252,176,117,0.85)';
+      ctx.beginPath();
+      ctx.arc(knobX, knobY, JOY_RADIUS*0.45, 0, Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+    }
+
     function drawFloatingPauseButton() {
       const btnSize = Math.floor(CELL * 1.1);
       const btnX = W - btnSize - 16;
       const btnY = QUEUE_H + 16;
 
       ctx.save();
+      ctx.globalAlpha = 0.5;
       ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
       ctx.shadowBlur = 8;
       ctx.shadowOffsetY = 4;
@@ -1834,6 +1897,7 @@
       const btnY = QUEUE_H + 16;
 
       ctx.save();
+      ctx.globalAlpha = 0.5;
       ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
       ctx.shadowBlur = 8;
       ctx.shadowOffsetY = 4;
@@ -1887,6 +1951,7 @@
       const btnY = QUEUE_H + 16;
 
       ctx.save();
+      ctx.globalAlpha = 0.5;
       ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
       ctx.shadowBlur = 8;
       ctx.shadowOffsetY = 4;
@@ -2023,7 +2088,7 @@
       drawTheseusFigure(
               player.x,
               player.y,
-              CELL*0.38,
+              CELL*0.342,
               player.facing || 'right',
               player.isTheseus,
               ariadnePhase === 'escape'
@@ -2090,10 +2155,11 @@
       drawQueueBar();
 
       if (gameState === 'PLAYING') {
-        if (player.isTheseus && !minoKilled) drawMinimap();
+        if (player.isTheseus && !minoKilled) drawMinimap(camY);
         drawFloatingPauseButton();
         drawFloatingShareButton();
         drawFloatingQuitButton();
+        drawVirtualJoystick();
       }
     }
 
