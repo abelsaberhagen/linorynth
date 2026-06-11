@@ -616,6 +616,8 @@
     const NUM_TRAPS = 20;
     let traps = [];
     let triviaState = null;
+    const triviaMusic = new Audio('Kahoot Question Theme.mp3');
+    triviaMusic.loop = true;
 
     function initTraps() {
       traps = [];
@@ -1237,6 +1239,8 @@
             gameState = 'TRIVIA';
             updateLayout();
             releaseJoy();
+            triviaMusic.currentTime = 0;
+            triviaMusic.play().catch(() => {});
             return;
           }
         }
@@ -1258,10 +1262,12 @@
         if(triviaState.resultTimer <= 0){
           if(triviaState.correct){
             triviaState = null; gameState = 'PLAYING'; updateLayout();
+            triviaMusic.pause(); triviaMusic.currentTime = 0;
           } else if(triviaState.attempts < 2){
             triviaState.wrongIdx = triviaState.selectedIdx;
             triviaState.answered = false; triviaState.selectedIdx = -1;
           } else {
+            triviaMusic.pause(); triviaMusic.currentTime = 0;
             restartGame();
           }
         }
