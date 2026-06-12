@@ -2,9 +2,9 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "linorynth",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["serve", "-l", "5500", "."],
+      "name": "game",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "5500"],
       "port": 5500
     }
   ]
