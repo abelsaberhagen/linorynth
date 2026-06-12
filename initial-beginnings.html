@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linorinth - Instructions</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IM+Fell+Double+Pica&display=swap" rel="stylesheet">
+
+    <script src="translations.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f0f4f8;
+            font-family: 'IM Fell Double Pica', serif;
+        }
+
+        /* Initial Beginnings Base Canvas Container */
+        .initial-beginnings-container {
+            position: relative;
+            width: 361px;
+            height: 660px;
+            background: #C1DEE4;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .blur-bg-ellipse {
+            position: absolute;
+            width: 227px;
+            left: calc(50% - 227px/2 + 3px);
+            top: -164px;
+            bottom: 496px;
+            background: rgba(255, 255, 255, 0.8);
+            filter: blur(150px);
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .inner-panel-card {
+            position: absolute;
+            width: 340px;
+            height: 633px;
+            left: 11px;
+            top: 10px;
+            background: #D3E8EC;
+            border-radius: 30px;
+
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 20px 24px 20px;
+            box-sizing: border-box;
+        }
+
+        .header-navigation-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            position: relative;
+            margin-bottom: 14px;
+            height: 54px;
+            flex-shrink: 0;
+        }
+
+        .logo-vector {
+            width: 201px;
+            height: 54px;
+            margin-bottom: 14px;
+            flex-shrink: 0;
+        }
+
+        .back-nav-button {
+            box-sizing: border-box;
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 32px;
+            height: 34px;
+            background: #F9B271;
+            border: 5px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 2px 1px rgba(0, 0, 0, 0.25);
+            border-radius: 5px;
+            font-family: 'IM Fell Double Pica', serif;
+            font-size: 16px;
+            color: #14325C;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .back-nav-button:hover {
+            opacity: 0.8;
+        }
+
+        .step-block {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            margin-bottom: 12px;
+            flex-shrink: 0;
+        }
+
+        .step-instruction-text {
+            font-family: 'IM Fell Double Pica', serif;
+            font-size: 14px;
+            line-height: 18px;
+            color: #14325C;
+            margin-bottom: 4px;
+            white-space: normal;
+            word-wrap: break-word;
+            font-weight: bold;
+        }
+
+        .text-align-right { text-align: right; padding-right: 12px; }
+        .text-align-left  { text-align: left; padding-left: 12px; }
+
+        .graphic-step-frame {
+            height: 48px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            flex-shrink: 0;
+            width: 100%;
+        }
+
+        .graphic-step-one   { background-image: url('decorative_assets/find_sword.png'); background-position: right 46px center; }
+        .graphic-step-two   { background-image: url('decorative_assets/kill_minotaur.png'); background-position: left 32px center; }
+        .graphic-step-three { background-image: url('decorative_assets/escape.png'); background-position: right 14px center; }
+        .graphic-step-four  { background-image: url('decorative_assets/enter_palace.png'); background-position: left 54px center; }
+
+        .play-game-action-btn {
+            box-sizing: border-box;
+            width: 228px;
+            height: 68px;
+            background: #F9B271;
+            border: 5px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 2px 1px rgba(0, 0, 0, 0.25);
+            border-radius: 18px;
+            font-family: 'IM Fell Double Pica', serif;
+            font-size: 24px;
+            line-height: 30px;
+            color: #14325C;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            text-decoration: none;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            margin-top: auto;
+            flex-shrink: 0;
+        }
+
+        .play-game-action-btn:hover {
+            opacity: 0.9;
+        }
+
+        .view-key-btn {
+            position: absolute;
+            bottom: 145px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 240px;
+            height: 44px;
+            background: #14325C;
+            color: #C1DEE4;
+            border: none;
+            border-radius: 22px;
+            font-family: 'IM Fell Double Pica', serif;
+            font-size: 17px;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            z-index: 130;
+        }
+
+        .view-key-btn:hover {
+            background: #1c437a;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Structural wrapper matches .paused-container */
+        .key-page-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: #C1DEE4;
+            overflow: hidden;
+            font-family: 'IM Fell Double Pica', serif;
+        }
+
+        /* Text header properties matching .game-paused-title */
+        .key-text-header {
+            position: absolute;
+            width: 260px;
+            height: 40px;
+            left: calc(50% - 260px/2);
+            top: 115px;
+            font-family: 'IM Fell Double Pica', serif;
+            font-style: normal;
+            font-weight: 400;
+            font-size: 32px;
+            line-height: 40px;
+            text-align: center;
+            letter-spacing: 0.05em;
+            color: #14325C;
+        }
+
+        .key-text-sub {
+            position: absolute;
+            width: 260px;
+            height: 25px;
+            left: calc(50% - 260px/2);
+            top: 160px;
+            font-family: 'IM Fell Double Pica', serif;
+            font-style: normal;
+            font-weight: 400;
+            font-size: 20px;
+            line-height: 25px;
+            text-align: center;
+            letter-spacing: 0.05em;
+            color: #14325C;
+        }
+
+        /* List Container absolute tracking positions (Matches your Step Texts vertical flow) */
+        .key-list-wrapper {
+            position: absolute;
+            width: 260px;
+            height: 430px;
+            left: calc(50% - 260px/2);
+            top: 220px;
+        }
+
+        /* Explicit item block rows separated symmetrically to handle labels cleanly */
+        .key-row-item {
+            position: absolute;
+            width: 100%;
+            height: 60px;
+            display: flex;
+            align-items: center;
+        }
+
+        /* Individual item offsets calculated to reflect standard layout grids */
+        .key-row-item:nth-child(1) { top: 0; }
+        .key-row-item:nth-child(2) { top: 86px; }
+        .key-row-item:nth-child(3) { top: 172px; }
+        .key-row-item:nth-child(4) { top: 258px; }
+        .key-row-item:nth-child(5) { top: 344px; }
+
+        .key-symbol-box {
+            box-sizing: border-box;
+            width: 60px;
+            height: 60px;
+            border: 1px solid #14325C;
+            background-size: 100% 100%;
+            background-repeat: no-repeat;
+            background-position: center;
+            background-origin: content-box;
+        }
+
+        .key-symbol-label {
+            margin-left: 24px;
+            font-family: 'IM Fell Double Pica', serif;
+            font-style: normal;
+            font-weight: 400;
+            font-size: 20px;
+            line-height: 60px;
+            color: #14325C;
+            letter-spacing: 0.05em;
+        }
+    </style>
+</head>
+<body>
+
+<div class="initial-beginnings-container">
+    <div class="blur-bg-ellipse"></div>
+
+    <div class="inner-panel-card">
+
+        <div class="header-navigation-row">
+            <a href="info-page.html" class="back-nav-button">←</a>
+            <img src="slop/logo.svg" alt="LINORINTH" class="logo-vector">
+        </div>
+
+        <div class="step-block">
+            <div class="step-instruction-text text-align-right" data-i18n="step_one">STEP 1. FIND SWORD</div>
+            <div class="graphic-step-frame graphic-step-one"></div>
+        </div>
+
+        <div class="step-block">
+            <div class="step-instruction-text text-align-left" data-i18n="step_two">STEP 2. SLAY MINOTAUR</div>
+            <div class="graphic-step-frame graphic-step-two"></div>
+        </div>
+
+        <div class="step-block">
+            <div class="step-instruction-text text-align-right" data-i18n="step_three">STEP 3. ESCAPE LABYRINTH</div>
+            <div class="graphic-step-frame graphic-step-three"></div>
+        </div>
+
+        <div class="step-block">
+            <div class="step-instruction-text text-align-left" data-i18n="step_four">STEP 4. ENTER KNOSSOS PALACE</div>
+            <div class="graphic-step-frame graphic-step-four"></div>
+        </div>
+
+        <button class="view-key-btn" onclick="openSymbolsKey(event)" data-i18n="view_key">
+            VIEW SYMBOLS KEY
+        </button>
+
+        <a href="game.html" class="play-game-action-btn" data-i18n="play_btn">PLAY</a>
+
+    </div>
+
+    <div class="key-page-container hidden" id="symbols-screen">
+
+        <div class="inner-panel-card">
+
+            <div class="header-navigation-row">
+                <button class="back-nav-button" onclick="closeSymbolsKey()">←</button>
+                <img src="slop/logo.svg" alt="LINORINTH" class="logo-vector">
+            </div>
+
+            <div class="key-text-header" data-i18n="key_header">KEY</div>
+            <div class="key-text-sub" data-i18n="key_sub">TO GAME SYMBOLS</div>
+
+            <div class="key-list-wrapper">
+
+                <div class="key-row-item">
+                    <div class="key-symbol-box"
+                         style="background-image:url('decorative_assets/symbols_assets/minitheseus.png');">
+                    </div>
+                    <span class="key-symbol-label" data-i18n="symbol_you">YOU</span>
+                </div>
+
+                <div class="key-row-item">
+                    <div class="key-symbol-box"
+                         style="background-image:url('decorative_assets/symbols_assets/minitaur.png');">
+                    </div>
+                    <span class="key-symbol-label" data-i18n="symbol_minotaur">MINOTAUR</span>
+                </div>
+
+                <div class="key-row-item">
+                    <div class="key-symbol-box"
+                         style="background-image:url('decorative_assets/symbols_assets/traps.png');">
+                    </div>
+                    <span class="key-symbol-label" data-i18n="symbol_traps">TRAPS</span>
+                </div>
+
+                <div class="key-row-item">
+                    <div class="key-symbol-box"
+                         style="background-image:url('decorative_assets/symbols_assets/sword.png');">
+                    </div>
+                    <span class="key-symbol-label" data-i18n="symbol_sword">SWORD</span>
+                </div>
+
+                <div class="key-row-item">
+                    <div class="key-symbol-box"
+                         style="background-image:url('decorative_assets/symbols_assets/thread.png');">
+                    </div>
+                    <span class="key-symbol-label" data-i18n="symbol_thread">THREAD</span>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    function openSymbolsKey(event) {
+        if (event) event.preventDefault();
+
+        document.querySelector('.inner-panel-card').style.display = 'none';
+        document.getElementById('symbols-screen').classList.remove('hidden');
+    }
+
+    function closeSymbolsKey() {
+        document.querySelector('.inner-panel-card').style.display = 'flex';
+        document.getElementById('symbols-screen').classList.add('hidden');
+    }
+</script>
+
+</body>
+</html>
