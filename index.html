@@ -402,23 +402,23 @@
   <script>
     'use strict';
 
-    const canvas = document.getElementById('c');
-    const ctx = canvas.getContext('2d');
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
 
-    const ASPECT = 390 / 844;
-    let W, H;
+  const ASPECT = 390 / 844;
+  let W, H;
 
-    function resizeAppFrame() {
-      if (window.innerHeight * ASPECT <= window.innerWidth) { H = window.innerHeight; W = Math.floor(H * ASPECT); }
-      else { W = window.innerWidth; H = Math.floor(W / ASPECT); }
-      const frame = document.getElementById('app-frame');
-      frame.style.width = W + 'px';
-      frame.style.height = H + 'px';
-      canvas.width = W; canvas.height = H;
-      canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
-    }
-    window.addEventListener('resize', resizeAppFrame);
-    resizeAppFrame();
+  function resizeAppFrame() {
+    if (window.innerHeight * ASPECT <= window.innerWidth) { H = window.innerHeight; W = Math.floor(H * ASPECT); }
+    else { W = window.innerWidth; H = Math.floor(W / ASPECT); }
+    const frame = document.getElementById('app-frame');
+    frame.style.width = W + 'px';
+    frame.style.height = H + 'px';
+    canvas.width = W; canvas.height = H;
+    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  }
+  window.addEventListener('resize', resizeAppFrame);
+  resizeAppFrame();
 
     const QUEUE_H = Math.max(24, Math.floor(H * 0.034));
     const GAME_H_CUTSCENE = Math.floor(H * 0.7525);
@@ -439,10 +439,13 @@
     const COLS = 23, ROWS = 23;
     const MAZE_W = COLS * CELL, MAZE_H = ROWS * CELL;
 
-    const maze = new Uint8Array(ROWS * COLS);
-    function idx(r, c) { return r * COLS + c; }
+  const maze = new Uint8Array(ROWS * COLS);
+  function idx(r, c) { return r * COLS + c; }
 
-    (function generate() {
+    let spawnRoom = {side:'top', r0:0, c0:0};
+
+    function generateMaze() {
+      maze.fill(0);
       const visited = new Uint8Array(ROWS * COLS);
       const stack = [0]; visited[0] = 1;
       const dirs = [{dr:-1,dc:0,bit:1,ob:4},{dr:0,dc:1,bit:2,ob:8},{dr:1,dc:0,bit:4,ob:1},{dr:0,dc:-1,bit:8,ob:2}];
@@ -458,24 +461,50 @@
         }
         if (!moved) stack.pop();
       }
+      const _sides = ['top','bottom','left','right'];
+      const _side  = _sides[Math.floor(Math.random()*4)];
+      const _sr0   = _side==='top' ? 0 : _side==='bottom' ? ROWS-2 : Math.floor(Math.random()*(ROWS-1));
+      const _sc0   = _side==='left' ? 0 : _side==='right' ? COLS-2 : Math.floor(Math.random()*(COLS-1));
+      spawnRoom.side = _side; spawnRoom.r0 = _sr0; spawnRoom.c0 = _sc0;
+      maze[idx(_sr0,  _sc0)]   |= 2|4;
+      maze[idx(_sr0,  _sc0+1)] |= 4|8;
+      maze[idx(_sr0+1,_sc0)]   |= 1|2;
+      maze[idx(_sr0+1,_sc0+1)] |= 1|8;
+      if(_side==='top')    { maze[idx(_sr0+1,_sc0+1)]|=4; maze[idx(_sr0+2,_sc0+1)]|=1; }
+      if(_side==='bottom') { maze[idx(_sr0,  _sc0+1)]|=1; maze[idx(_sr0-1,_sc0+1)]|=4; }
+      if(_side==='left')   { maze[idx(_sr0+1,_sc0+1)]|=2; maze[idx(_sr0+1,_sc0+2)]|=8; }
+      if(_side==='right')  { maze[idx(_sr0+1,_sc0)]  |=8; maze[idx(_sr0+1,_sc0-1)]|=2; }
+    }
+
+    generateMaze();
+
+  const DMAP = [{dr:-1,dc:0,bit:1},{dr:0,dc:1,bit:2},{dr:1,dc:0,bit:4},{dr:0,dc:-1,bit:8}];
+
+    // Braid the maze: knock down most dead ends to create loops, giving
+    // the player more routes around the Minotaur instead of getting trapped.
+    (function braid() {
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const cell = idx(r, c);
+          const degree = (maze[cell]&1?1:0)+(maze[cell]&2?1:0)+(maze[cell]&4?1:0)+(maze[cell]&8?1:0);
+          if (degree !== 1) continue;
+          if (Math.random() < 0.95) continue; // leave a few dead ends for variety
+
+          const candidates = [];
+          for (const d of DMAP) {
+            const nr = r+d.dr, nc = c+d.dc;
+            if (nr<0||nr>=ROWS||nc<0||nc>=COLS) continue;
+            if (maze[cell] & d.bit) continue; // already connected
+            candidates.push(d);
+          }
+          if (!candidates.length) continue;
+          const d = candidates[Math.floor(Math.random()*candidates.length)];
+          const ob = d.bit===1?4 : d.bit===2?8 : d.bit===4?1 : 2;
+          maze[cell] |= d.bit;
+          maze[idx(r+d.dr, c+d.dc)] |= ob;
+        }
+      }
     })();
-
-    const _sides = ['top','bottom','left','right'];
-    const _side  = _sides[Math.floor(Math.random()*4)];
-    const _sr0   = _side==='top' ? 0 : _side==='bottom' ? ROWS-2 : Math.floor(Math.random()*(ROWS-1));
-    const _sc0   = _side==='left' ? 0 : _side==='right' ? COLS-2 : Math.floor(Math.random()*(COLS-1));
-    const spawnRoom = {side:_side, r0:_sr0, c0:_sc0};
-
-    maze[idx(_sr0,  _sc0)]   |= 2|4;
-    maze[idx(_sr0,  _sc0+1)] |= 4|8;
-    maze[idx(_sr0+1,_sc0)]   |= 1|2;
-    maze[idx(_sr0+1,_sc0+1)] |= 1|8;
-    if(_side==='top')    { maze[idx(_sr0+1,_sc0+1)]|=4; maze[idx(_sr0+2,_sc0+1)]|=1; }
-    if(_side==='bottom') { maze[idx(_sr0,  _sc0+1)]|=1; maze[idx(_sr0-1,_sc0+1)]|=4; }
-    if(_side==='left')   { maze[idx(_sr0+1,_sc0+1)]|=2; maze[idx(_sr0+1,_sc0+2)]|=8; }
-    if(_side==='right')  { maze[idx(_sr0+1,_sc0)]  |=8; maze[idx(_sr0+1,_sc0-1)]|=2; }
-
-    const DMAP = [{dr:-1,dc:0,bit:1},{dr:0,dc:1,bit:2},{dr:1,dc:0,bit:4},{dr:0,dc:-1,bit:8}];
 
     function bfs(sr, sc, er, ec) {
       const prev = new Int16Array(ROWS*COLS).fill(-1), vis = new Uint8Array(ROWS*COLS);
@@ -493,81 +522,58 @@
       const path=[]; let cur=tgt; while(cur!==-1){path.unshift(cur);cur=prev[cur];} return path;
     }
 
-    function bfsDist(sr, sc) {
-      const dist = new Int16Array(ROWS*COLS).fill(-1);
-      dist[idx(sr,sc)] = 0;
-      const q = [idx(sr,sc)]; let head = 0;
-      while (head < q.length) {
-        const cur = q[head++];
-        const r=Math.floor(cur/COLS), c=cur%COLS;
-        for (const d of DMAP) {
-          if (!(maze[cur]&d.bit)) continue;
-          const ni = idx(r+d.dr, c+d.dc);
-          if (dist[ni]===-1) { dist[ni]=dist[cur]+1; q.push(ni); }
-        }
+  function bfsDist(sr, sc) {
+    const dist = new Int16Array(ROWS*COLS).fill(-1);
+    dist[idx(sr,sc)] = 0;
+    const q = [idx(sr,sc)]; let head = 0;
+    while (head < q.length) {
+      const cur = q[head++];
+      const r=Math.floor(cur/COLS), c=cur%COLS;
+      for (const d of DMAP) {
+        if (!(maze[cur]&d.bit)) continue;
+        const ni = idx(r+d.dr, c+d.dc);
+        if (dist[ni]===-1) { dist[ni]=dist[cur]+1; q.push(ni); }
       }
-      return dist;
     }
+    return dist;
+  }
 
-    function bfsRunAway(mr, mc, pr, pc) {
-      const playerDist = bfsDist(pr, pc);
-      let maxD = -1, tr = mr, tc = mc;
-      for (let r=0; r<ROWS; r++) for (let c=0; c<COLS; c++) {
-        const d = playerDist[idx(r,c)];
-        if (d > maxD) { maxD=d; tr=r; tc=c; }
-      }
-      return bfs(mr, mc, tr, tc);
+  function bfsRunAway(mr, mc, pr, pc) {
+    const playerDist = bfsDist(pr, pc);
+    let maxD = -1, tr = mr, tc = mc;
+    for (let r=0; r<ROWS; r++) for (let c=0; c<COLS; c++) {
+      const d = playerDist[idx(r,c)];
+      if (d > maxD) { maxD=d; tr=r; tc=c; }
     }
+    return bfs(mr, mc, tr, tc);
+  }
 
-    function releaseJoy(){
-      dragInput.active = false;
+  function cellCenter(r,c) { return {x:c*CELL+CELL/2, y:r*CELL+CELL/2}; }
+  function worldToCell(x,y) {
+    return {r:Math.max(0,Math.min(ROWS-1,Math.floor(y/CELL))), c:Math.max(0,Math.min(COLS-1,Math.floor(x/CELL)))};
+  }
+  function dist(ax,ay,bx,by) { return Math.hypot(ax-bx,ay-by); }
+
+  const PLAYER_R=CELL*0.28, MINO_R=CELL*0.33;
+  let playerSpawn, swordSpawn, minoSpawn;
+  function initSpawns(){
+    playerSpawn = {x:(spawnRoom.c0+1)*CELL, y:(spawnRoom.r0+1)*CELL};
+    swordSpawn  = randomSpawn([playerSpawn], ROWS/3);
+    minoSpawn   = randomSpawn([playerSpawn, swordSpawn], ROWS/4);
+  }
+  
+  function randomSpawn(others=[], minCells=0) {
+    for (let a=0; a<2000; a++) {
+      const r=Math.floor(Math.random()*ROWS), c=Math.floor(Math.random()*COLS);
+      const {x,y}=cellCenter(r,c);
+      let ok=true;
+      for (const o of others) if (dist(x,y,o.x,o.y)<minCells*CELL){ok=false;break;}
+      if (ok) return {x,y};
     }
+    return cellCenter(Math.floor(ROWS/2),Math.floor(COLS/2));
+  }
 
-    function drawTheseusFigure(x,y,s,facing,isTheseus,walkPhase=0){
-      const img = isTheseus
-              ? (facing==='left' ? swordLeftImg : swordRightImg)
-              : (facing==='left' ? bodyLeftImg  : bodyRightImg);
-      const loaded = isTheseus
-              ? (facing==='left' ? swordLeftLoaded : swordRightLoaded)
-              : (facing==='left' ? bodyLeftLoaded  : bodyRightLoaded);
-
-      if (!loaded) {
-        drawStickFigure(x,y,s,'#D5E6ED',walkPhase);
-        if (isTheseus) drawSwordOnFigure(x,y,s);
-        return;
-      }
-
-      const h = s*5;
-      const w = h * (img.naturalWidth / img.naturalHeight);
-      ctx.drawImage(img, x - w/2, y + s*1.5 - h, w, h);
-    }
-
-    function cellCenter(r,c) { return {x:c*CELL+CELL/2, y:r*CELL+CELL/2}; }
-    function worldToCell(x,y) {
-      return {r:Math.max(0,Math.min(ROWS-1,Math.floor(y/CELL))), c:Math.max(0,Math.min(COLS-1,Math.floor(x/CELL)))};
-    }
-    function dist(ax,ay,bx,by) { return Math.hypot(ax-bx,ay-by); }
-
-    const PLAYER_R=CELL*0.28, MINO_R=CELL*0.33;
-    let playerSpawn, swordSpawn, minoSpawn;
-    function initSpawns(){
-      playerSpawn = {x:(spawnRoom.c0+1)*CELL, y:(spawnRoom.r0+1)*CELL};
-      swordSpawn  = randomSpawn([playerSpawn], ROWS/3);
-      minoSpawn   = randomSpawn([playerSpawn, swordSpawn], ROWS/4);
-    }
-
-    function randomSpawn(others=[], minCells=0) {
-      for (let a=0; a<2000; a++) {
-        const r=Math.floor(Math.random()*ROWS), c=Math.floor(Math.random()*COLS);
-        const {x,y}=cellCenter(r,c);
-        let ok=true;
-        for (const o of others) if (dist(x,y,o.x,o.y)<minCells*CELL){ok=false;break;}
-        if (ok) return {x,y};
-      }
-      return cellCenter(Math.floor(ROWS/2),Math.floor(COLS/2));
-    }
-
-    initSpawns();
+  initSpawns();
 
     const TRIVIA_IMG_QUEENS = "./decorative_assets/queens_megaron.jpg";
     const TRIVIA_IMG_KINGS = "./decorative_assets/throne_room.jpg";
@@ -624,14 +630,17 @@
     const mino   = {x:0,y:0,r:MINO_R,path:[],pathTimer:0};
     let SWORD_X=0, SWORD_Y=0, swordCollected=false;
 
-    let gameState='INTRO', theseusTimer=0, lastTime=0, heartPhase=0, minoKilled=false, killFlashTimer=0;
-    updateLayout();
-    let introAnim = null;
-    let screenFadeAlpha = 0;
-    let threadPath=[], threadPlayerCell={r:-1,c:-1};
-    let threadItemX=0, threadItemY=0, threadCollected=false;
-    let minimapAlpha = 0.9;
-    let zoom = 1.0;
+  let gameState='INTRO', theseusTimer=0, lastTime=0, heartPhase=0, minoKilled=false, killFlashTimer=0;
+  let introAnim = null;
+  let screenFadeAlpha = 0;
+  let threadPath=[], threadPlayerCell={r:-1,c:-1};
+  let threadItemX=0, threadItemY=0, threadCollected=false;
+  let minimapAlpha = 0.9;
+  let zoom = 1.0;
+  let ariadne = {x:0, y:0, r:PLAYER_R, path:[], pathTimer:0};
+  let ariadnePhase = null; // null | 'approach' | 'escape'
+  let escapeWalkPhase = 0;
+  let ariadneTrail = [], playerTrailIdx = 0; /*, pinchActive = false, pinchStartDist = 1, pinchStartZoom = 1;*/
 
     let pauseImgLoaded = false;
     let instImgLoaded = false;
@@ -671,32 +680,32 @@
     let escapeWalkPhase = 0;
     let ariadneTrail = [], playerTrailIdx = 0; /*, pinchActive = false, pinchStartDist = 1, pinchStartZoom = 1;*/
 
-    const triviaImgCache = {};
-    function getTriviaImg(src) {
-      if (!triviaImgCache[src]) {
-        const entry = { img: new Image(), loaded: false, error: false };
-        entry.img.onload  = () => { entry.loaded = true; };
-        entry.img.onerror = () => { entry.error  = true; console.warn('Trivia image failed to load:', src); };
-        entry.img.src = src;
-        triviaImgCache[src] = entry;
-      }
-      return triviaImgCache[src];
+  const triviaImgCache = {};
+  function getTriviaImg(src) {
+    if (!triviaImgCache[src]) {
+      const entry = { img: new Image(), loaded: false, error: false };
+      entry.img.onload  = () => { entry.loaded = true; };
+      entry.img.onerror = () => { entry.error  = true; console.warn('Trivia image failed to load:', src); };
+      entry.img.src = src;
+      triviaImgCache[src] = entry;
     }
-    // Preload all trivia images at startup
-    TRIVIA_QUESTIONS.forEach(q => { if (q.img) getTriviaImg(q.img); });
+    return triviaImgCache[src];
+  }
+  // Preload all trivia images at startup
+  TRIVIA_QUESTIONS.forEach(q => { if (q.img) getTriviaImg(q.img); });
 
     const LOST_GAME_URL = "game-over.html";
 
-    function applySpawns(){
-      player.x=playerSpawn.x; player.y=playerSpawn.y; player.isTheseus=false;
-      mino.x=minoSpawn.x; mino.y=minoSpawn.y; mino.path=[]; mino.pathTimer=0;
-      SWORD_X=swordSpawn.x; SWORD_Y=swordSpawn.y; swordCollected=false;
-      minoKilled=false; killFlashTimer=0; threadPath=[]; threadPlayerCell={r:-1,c:-1};
-      threadCollected=false; threadItemX=0; threadItemY=0; minimapAlpha=0.9;
-      ariadnePhase=null; ariadne.path=[]; ariadne.pathTimer=0; escapeWalkPhase=0; ariadneTrail=[]; playerTrailIdx=0;
-    }
-    applySpawns();
-    startIntro();
+  function applySpawns(){
+    player.x=playerSpawn.x; player.y=playerSpawn.y; player.isTheseus=false;
+    mino.x=minoSpawn.x; mino.y=minoSpawn.y; mino.path=[]; mino.pathTimer=0;
+    SWORD_X=swordSpawn.x; SWORD_Y=swordSpawn.y; swordCollected=false;
+    minoKilled=false; killFlashTimer=0; threadPath=[]; threadPlayerCell={r:-1,c:-1};
+    threadCollected=false; threadItemX=0; threadItemY=0; minimapAlpha=0.9;
+    ariadnePhase=null; ariadne.path=[]; ariadne.pathTimer=0; escapeWalkPhase=0; ariadneTrail=[]; playerTrailIdx=0;
+  }
+  applySpawns();
+  startIntro();
 
     let queuePos = Math.floor(Math.random() * 21) + 20;
     let queueTimer = 15 + Math.random() * 25;
@@ -764,40 +773,43 @@
     function restartGame(){initSpawns();initTraps();applySpawns();theseusTimer=0;gameState='PLAYING';
       updateLayout();
       triviaState=null;dragInput.active = false;}
+    function restartGame(){generateMaze();initSpawns();initTraps();applySpawns();theseusTimer=0;gameState='PLAYING';
+      updateLayout();
+      triviaState=null;dragInput.active = false;}
 
     function startIntro() {
       const entryR = spawnRoom.r0 + 1, entryC = spawnRoom.c0 + 1;
       const dmap = bfsDist(entryR, entryC);
 
-      // Find cells 22-32 steps from entrance for a longer, more dramatic chase
-      let candidates = [];
-      for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
-        const d = dmap[idx(r, c)];
-        if (d >= 22 && d <= 32) candidates.push({r, c});
-      }
-      if (!candidates.length) {
-        let best = {r: entryR, c: entryC}, bestD = 0;
-        for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
-          if (dmap[idx(r,c)] > bestD) { bestD = dmap[idx(r,c)]; best = {r, c}; }
-        }
-        candidates = [best];
-      }
-      const startCell = candidates[Math.floor(Math.random() * candidates.length)];
-      const playerPath = bfs(startCell.r, startCell.c, entryR, entryC);
-
-      // Player starts 2 cells ahead on the path so mino is close behind at the start
-      const MINO_HEAD = 2;
-      const minoCell = playerPath[0];
-      const pCell = playerPath[Math.min(MINO_HEAD, playerPath.length - 1)];
-      const minoStart = cellCenter(Math.floor(minoCell/COLS), minoCell%COLS);
-      const pStart   = cellCenter(Math.floor(pCell/COLS),    pCell%COLS);
-
-      player.x = pStart.x;   player.y = pStart.y;   player.isTheseus = false;
-      mino.x   = minoStart.x; mino.y   = minoStart.y; mino.path = []; mino.pathTimer = 0;
-      heartPhase = 0;
-
-      introAnim = { playerPath, playerPathPos: MINO_HEAD, elapsed: 0, textAlpha: 0 };
+    // Find cells 22-32 steps from entrance for a longer, more dramatic chase
+    let candidates = [];
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+      const d = dmap[idx(r, c)];
+      if (d >= 22 && d <= 32) candidates.push({r, c});
     }
+    if (!candidates.length) {
+      let best = {r: entryR, c: entryC}, bestD = 0;
+      for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+        if (dmap[idx(r,c)] > bestD) { bestD = dmap[idx(r,c)]; best = {r, c}; }
+      }
+      candidates = [best];
+    }
+    const startCell = candidates[Math.floor(Math.random() * candidates.length)];
+    const playerPath = bfs(startCell.r, startCell.c, entryR, entryC);
+
+    // Player starts 2 cells ahead on the path so mino is close behind at the start
+    const MINO_HEAD = 2;
+    const minoCell = playerPath[0];
+    const pCell = playerPath[Math.min(MINO_HEAD, playerPath.length - 1)];
+    const minoStart = cellCenter(Math.floor(minoCell/COLS), minoCell%COLS);
+    const pStart   = cellCenter(Math.floor(pCell/COLS),    pCell%COLS);
+
+    player.x = pStart.x;   player.y = pStart.y;   player.isTheseus = false;
+    mino.x   = minoStart.x; mino.y   = minoStart.y; mino.path = []; mino.pathTimer = 0;
+    heartPhase = 0;
+
+    introAnim = { playerPath, playerPathPos: MINO_HEAD, elapsed: 0, textAlpha: 0 };
+  }
 
     function openSymbolsKey(event) {
       if (event) event.stopPropagation(); // Prevents background click layer from firing immediately
@@ -819,10 +831,11 @@
       if (gameState === 'WIN') {
         window.location.href = 'victory.html';
       } else if (gameState === 'DEAD') {
-        if (x >= W/2 - 110 && x <= W/2 + 110 && y >= 340 && y <= 394) {
+        const {btnW,btnH,btn1Y,btn2Y} = getEndScreenButtons();
+        if (x >= W/2 - btnW/2 && x <= W/2 + btnW/2 && y >= btn1Y && y <= btn1Y + btnH) {
           restartGame();
         }
-        else if (x >= W/2 - 110 && x <= W/2 + 110 && y >= 420 && y <= 474) {
+        else if (x >= W/2 - btnW/2 && x <= W/2 + btnW/2 && y >= btn2Y && y <= btn2Y + btnH) {
           window.location.href = LOST_GAME_URL;
         }
       }
@@ -874,39 +887,37 @@
         return;
       }
 
-      if (gameState === 'PLAYING') {
-        const btnSize = Math.floor(CELL * 1.1);
+    if (gameState === 'PLAYING') {
+      const btnSize = Math.floor(CELL * 1.1);
+      
+      // Floating Pause Button boundaries (Top Right)
+      const pauseX = W - btnSize - 16;
+      const pauseY = QUEUE_H + 16;
+      if (x >= pauseX - 6 && x <= pauseX + btnSize + 6 && y >= pauseY - 6 && y <= pauseY + btnSize + 6) {
+        gameState = 'PAUSED';
+        releaseJoy();
+        return;
+      }
 
-        // Floating Pause Button boundaries (Top Right)
-        const pauseX = W - btnSize - 16;
-        const pauseY = QUEUE_H + 16;
-        if (x >= pauseX - 6 && x <= pauseX + btnSize + 6 && y >= pauseY - 6 && y <= pauseY + btnSize + 6) {
-          gameState = 'PAUSED';
-          updateLayout();
-          document.getElementById('pause-overlay').style.display = 'block';
-          releaseJoy();
-          return;
+      // Floating Share Button boundaries (left of Pause)
+      const shareX = pauseX - btnSize - 8;
+      const shareY = QUEUE_H + 16;
+      if (x >= shareX - 6 && x <= shareX + btnSize + 6 && y >= shareY - 6 && y <= shareY + btnSize + 6) {
+        if (navigator.share) {
+          navigator.share({ title: 'Linorinth', url: window.location.href });
+        } else {
+          navigator.clipboard && navigator.clipboard.writeText(window.location.href);
         }
+        return;
+      }
 
-        // Floating Share Button boundaries (left of Pause)
-        const shareX = pauseX - btnSize - 8;
-        const shareY = QUEUE_H + 16;
-        if (x >= shareX - 6 && x <= shareX + btnSize + 6 && y >= shareY - 6 && y <= shareY + btnSize + 6) {
-          if (navigator.share) {
-            navigator.share({title: 'Linorinth', url: window.location.href});
-          } else {
-            navigator.clipboard && navigator.clipboard.writeText(window.location.href);
-          }
-          return;
-        }
-
-        // Floating Quit Button boundaries (Top Left)
-        const quitX = 16;
-        const quitY = QUEUE_H + 16;
-        if (x >= quitX - 6 && x <= quitX + btnSize + 6 && y >= quitY - 6 && y <= quitY + btnSize + 6) {
-          window.location.href = LOST_GAME_URL;
-          return;
-        }
+      // Floating Quit Button boundaries (Top Left)
+      const quitX = 16;
+      const quitY = QUEUE_H + 16;
+      if (x >= quitX - 6 && x <= quitX + btnSize + 6 && y >= quitY - 6 && y <= quitY + btnSize + 6) {
+        window.location.href = LOST_GAME_URL;
+        return;
+      }
 
         if (isTouch) {
           startDrag(x, y, touchId);
@@ -964,51 +975,51 @@
     });
     window.addEventListener('keyup',e=>{keys[e.key]=false;});
 
-    const PLAYER_SPEED=CELL*3.8, MINO_SPEED=CELL*2.1, ARIADNE_SPEED=CELL*3.2;
+  const PLAYER_SPEED=CELL*3.8, MINO_SPEED=CELL*2.1, ARIADNE_SPEED=CELL*3.2;
 
-    function triggerAriadne(){
-      gameState='ARIADNE'; ariadnePhase='approach'; releaseJoy();
-      threadCollected=true; threadPlayerCell={r:-1,c:-1};
+  function triggerAriadne(){
+    gameState='ARIADNE'; ariadnePhase='approach'; releaseJoy();
+    threadCollected=true; threadPlayerCell={r:-1,c:-1};
 
-      const halfW=W/(2*zoom), halfH=GAME_H/(2*zoom);
-      const camX=Math.max(halfW,Math.min(MAZE_W-halfW,player.x));
-      const camY=Math.max(halfH,Math.min(MAZE_H-halfH,player.y));
+    const halfW=W/(2*zoom), halfH=GAME_H/(2*zoom);
+    const camX=Math.max(halfW,Math.min(MAZE_W-halfW,player.x));
+    const camY=Math.max(halfH,Math.min(MAZE_H-halfH,player.y));
 
-      const cL=Math.floor((camX-halfW)/CELL), cR=Math.ceil((camX+halfW)/CELL);
-      const rT=Math.floor((camY-halfH)/CELL), rB=Math.ceil((camY+halfH)/CELL);
+    const cL=Math.floor((camX-halfW)/CELL), cR=Math.ceil((camX+halfW)/CELL);
+    const rT=Math.floor((camY-halfH)/CELL), rB=Math.ceil((camY+halfH)/CELL);
 
       const{r:pr,c:pc}=worldToCell(player.x,player.y);
       const dmap=bfsDist(pr,pc);
       const maxSteps=Math.floor(ARIADNE_SPEED*3/CELL);
 
-      const camScore=({r,c})=>Math.max(0,cL-c,c-cR)+Math.max(0,rT-r,r-rB);
-      const candidates=[];
+    const camScore=({r,c})=>Math.max(0,cL-c,c-cR)+Math.max(0,rT-r,r-rB);
+    const candidates=[];
+    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+      const d=dmap[idx(r,c)];
+      if(d<1||d>maxSteps) continue;
+      if(camScore({r,c})>0) candidates.push({r,c,d});
+    }
+
+    let spawnR,spawnC;
+    if(candidates.length){
+      candidates.sort((a,b)=>camScore(a)-camScore(b));
+      const minScore=camScore(candidates[0]);
+      const pool=candidates.filter(x=>camScore(x)<=minScore+1);
+      const pick=pool[Math.floor(Math.random()*pool.length)];
+      spawnR=pick.r; spawnC=pick.c;
+    } else {
+      let best=null,bestD=Infinity;
       for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
         const d=dmap[idx(r,c)];
-        if(d<1||d>maxSteps) continue;
-        if(camScore({r,c})>0) candidates.push({r,c,d});
+        if(d>=1&&camScore({r,c})>0&&d<bestD){bestD=d;best={r,c};}
       }
-
-      let spawnR,spawnC;
-      if(candidates.length){
-        candidates.sort((a,b)=>camScore(a)-camScore(b));
-        const minScore=camScore(candidates[0]);
-        const pool=candidates.filter(x=>camScore(x)<=minScore+1);
-        const pick=pool[Math.floor(Math.random()*pool.length)];
-        spawnR=pick.r; spawnC=pick.c;
-      } else {
-        let best=null,bestD=Infinity;
-        for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
-          const d=dmap[idx(r,c)];
-          if(d>=1&&camScore({r,c})>0&&d<bestD){bestD=d;best={r,c};}
-        }
-        spawnR=best?best.r:Math.max(0,pr-1); spawnC=best?best.c:pc;
-      }
-
-      const cc=cellCenter(spawnR,spawnC);
-      ariadne.x=cc.x; ariadne.y=cc.y;
-      ariadne.path=bfs(spawnR,spawnC,pr,pc); ariadne.pathTimer=0;
+      spawnR=best?best.r:Math.max(0,pr-1); spawnC=best?best.c:pc;
     }
+
+    const cc=cellCenter(spawnR,spawnC);
+    ariadne.x=cc.x; ariadne.y=cc.y;
+    ariadne.path=bfs(spawnR,spawnC,pr,pc); ariadne.pathTimer=0;
+  }
 
     function updateAriadne(dt){
       const ac=worldToCell(ariadne.x,ariadne.y);
@@ -1082,26 +1093,26 @@
       }
     }
 
-    function updateIntro(dt) {
-      const anim = introAnim;
-      anim.elapsed += dt;
-      anim.textAlpha = Math.min(1, anim.textAlpha + dt * 1.4);
+  function updateIntro(dt) {
+    const anim = introAnim;
+    anim.elapsed += dt;
+    anim.textAlpha = Math.min(1, anim.textAlpha + dt * 1.4);
 
-      // Zoom in tight at start, gradually pull back to normal as player nears entrance
-      const introProgress = Math.min(anim.playerPathPos / anim.playerPath.length, 1);
-      zoom = 2.5 - 1.5 * introProgress;
+    // Zoom in tight at start, gradually pull back to normal as player nears entrance
+    const introProgress = Math.min(anim.playerPathPos / anim.playerPath.length, 1);
+    zoom = 2.5 - 1.5 * introProgress;
 
-      // Advance player at 60% of normal speed so all 4 text phases have breathing room
-      anim.playerPathPos += (PLAYER_SPEED / CELL) * 0.6 * dt;
-      const pathLen = anim.playerPath.length;
-      const pi = Math.min(Math.floor(anim.playerPathPos), pathLen - 1);
-      const ni = Math.min(pi + 1, pathLen - 1);
-      const frac = anim.playerPathPos - Math.floor(anim.playerPathPos);
-      const cA = anim.playerPath[pi], cB = anim.playerPath[ni];
-      const posA = cellCenter(Math.floor(cA/COLS), cA%COLS);
-      const posB = cellCenter(Math.floor(cB/COLS), cB%COLS);
-      player.x = posA.x + (posB.x - posA.x) * frac;
-      player.y = posA.y + (posB.y - posA.y) * frac;
+    // Advance player at 60% of normal speed so all 4 text phases have breathing room
+    anim.playerPathPos += (PLAYER_SPEED / CELL) * 0.6 * dt;
+    const pathLen = anim.playerPath.length;
+    const pi = Math.min(Math.floor(anim.playerPathPos), pathLen - 1);
+    const ni = Math.min(pi + 1, pathLen - 1);
+    const frac = anim.playerPathPos - Math.floor(anim.playerPathPos);
+    const cA = anim.playerPath[pi], cB = anim.playerPath[ni];
+    const posA = cellCenter(Math.floor(cA/COLS), cA%COLS);
+    const posB = cellCenter(Math.floor(cB/COLS), cB%COLS);
+    player.x = posA.x + (posB.x - posA.x) * frac;
+    player.y = posA.y + (posB.y - posA.y) * frac;
 
       // Mino chases player
       mino.pathTimer -= dt;
@@ -1143,10 +1154,10 @@
       }
     }
 
-    function update(dt){
-      if(gameState==='ARIADNE'){updateAriadne(dt);return;}
-      if (gameState === 'INTRO') { updateIntro(dt); return; }
-      if(gameState!=='PLAYING' && gameState!=='TRIVIA') return;
+  function update(dt){
+    if(gameState==='ARIADNE'){updateAriadne(dt);return;}
+    if (gameState === 'INTRO') { updateIntro(dt); return; }
+    if(gameState!=='PLAYING' && gameState!=='TRIVIA') return;
 
       if(gameState==='PLAYING'){
         let kx = 0;
@@ -1242,32 +1253,36 @@
           }
         }
 
-        if (gameState !== 'PLAYING') return;
+      if(!swordCollected&&dist(player.x,player.y,SWORD_X,SWORD_Y)<CELL*0.7){
+        swordCollected=true; player.isTheseus=true; theseusTimer=2.8;
+        mino.pathTimer=0;
+      }
+    }
 
-        if(!swordCollected&&dist(player.x,player.y,SWORD_X,SWORD_Y)<CELL*0.7){
-          swordCollected=true; player.isTheseus=true; theseusTimer=2.8;
-          mino.pathTimer=0;
+    if(theseusTimer>0) theseusTimer-=dt;
+    if(killFlashTimer>0) killFlashTimer-=dt;
+    if(screenFadeAlpha>0) screenFadeAlpha=Math.max(0, screenFadeAlpha-dt*2.0);
+
+    if(triviaState && triviaState.answered && triviaState.resultTimer > 0){
+      triviaState.resultTimer -= dt;
+      if(triviaState.resultTimer <= 0){
+        if(triviaState.correct){
+          triviaState = null; gameState = 'PLAYING';
+        } else if(triviaState.attempts < 2){
+          triviaState.wrongIdx = triviaState.selectedIdx;
+          triviaState.answered = false; triviaState.selectedIdx = -1;
+        } else {
+          restartGame();
         }
       }
+    }
 
-      if(theseusTimer>0) theseusTimer-=dt;
-      if(killFlashTimer>0) killFlashTimer-=dt;
-      if(screenFadeAlpha>0) screenFadeAlpha=Math.max(0, screenFadeAlpha-dt*2.0);
-
-      if(triviaState && triviaState.answered && triviaState.resultTimer > 0){
-        triviaState.resultTimer -= dt;
-        if(triviaState.resultTimer <= 0){
-          if(triviaState.correct){
-            triviaState = null; gameState = 'PLAYING'; updateLayout();
-          } else if(triviaState.attempts < 2){
-            triviaState.wrongIdx = triviaState.selectedIdx;
-            triviaState.answered = false; triviaState.selectedIdx = -1;
-          } else {
-            restartGame();
-          }
-        }
-      }
-
+      if(!minoKilled && gameState !== 'TRIVIA'){
+        const heartDist = dist(player.x, player.y, mino.x, mino.y);
+        const heartT = 1 - Math.min(1, heartDist / (CELL * 14));
+        const bps = 0.1 + heartT * 3.4;
+        heartPhase += bps * dt;
+        if (heartPhase >= 1) heartPhase -= 1;
       if(!minoKilled){
         const heartDist = dist(player.x, player.y, mino.x, mino.y);
         const heartT = 1 - Math.min(1, heartDist / (CELL * 14));
@@ -1275,20 +1290,20 @@
         heartPhase += bps * dt;
         if (heartPhase >= 1) heartPhase -= 1;
 
-        mino.pathTimer-=dt;
-        if(mino.pathTimer<=0){
-          mino.pathTimer=0.7;
-          const{r:mr,c:mc}=worldToCell(mino.x,mino.y);
-          const{r:pr,c:pc}=worldToCell(player.x,player.y);
-          mino.path = player.isTheseus ? bfsRunAway(mr,mc,pr,pc) : bfs(mr,mc,pr,pc);
-        }
-        if(mino.path.length>1){
-          const ni=mino.path[1], tgt=cellCenter(Math.floor(ni/COLS),ni%COLS);
-          const dx=tgt.x-mino.x,dy=tgt.y-mino.y,d=Math.hypot(dx,dy);
-          if(d>1){mino.x+=dx/d*MINO_SPEED*dt;mino.y+=dy/d*MINO_SPEED*dt;}
-          if(d<CELL*0.2) mino.path.shift();
-        }
-        resolveWalls(mino);
+      mino.pathTimer-=dt;
+      if(mino.pathTimer<=0){
+        mino.pathTimer=0.7;
+        const{r:mr,c:mc}=worldToCell(mino.x,mino.y);
+        const{r:pr,c:pc}=worldToCell(player.x,player.y);
+        mino.path = player.isTheseus ? bfsRunAway(mr,mc,pr,pc) : bfs(mr,mc,pr,pc);
+      }
+      if(mino.path.length>1){
+        const ni=mino.path[1], tgt=cellCenter(Math.floor(ni/COLS),ni%COLS);
+        const dx=tgt.x-mino.x,dy=tgt.y-mino.y,d=Math.hypot(dx,dy);
+        if(d>1){mino.x+=dx/d*MINO_SPEED*dt;mino.y+=dy/d*MINO_SPEED*dt;}
+        if(d<CELL*0.2) mino.path.shift();
+      }
+      resolveWalls(mino);
 
         const contact = dist(player.x,player.y,mino.x,mino.y) < PLAYER_R+MINO_R+2;
         if(contact){
@@ -1315,18 +1330,18 @@
         if(side==='left'   && player.x<-PLAYER_R)       { gameState='WIN'; window.location.href = "victory.html"; }
         if(side==='right'  && player.x>MAZE_W+PLAYER_R) { gameState='WIN'; window.location.href = "victory.html"; }
 
-        if(!threadCollected && dist(player.x,player.y,threadItemX,threadItemY)<CELL*0.7){
-          threadCollected=true;
-        }
+      if(!threadCollected && dist(player.x,player.y,threadItemX,threadItemY)<CELL*0.7){
+        threadCollected=true;
+      }
 
-        if(threadCollected){
-          const pc = worldToCell(player.x, player.y);
-          if (pc.r !== threadPlayerCell.r || pc.c !== threadPlayerCell.c) {
-            threadPlayerCell = pc;
-            threadPath = bfs(pc.r, pc.c, spawnRoom.r0+1, spawnRoom.c0+1);
-          }
+      if(threadCollected){
+        const pc = worldToCell(player.x, player.y);
+        if (pc.r !== threadPlayerCell.r || pc.c !== threadPlayerCell.c) {
+          threadPlayerCell = pc;
+          threadPath = bfs(pc.r, pc.c, spawnRoom.r0+1, spawnRoom.c0+1);
         }
       }
+    }
 
       if (player.isTheseus && !minoKilled) {
         const _halfW = W / (2 * zoom), _halfH = GAME_H / (2 * zoom);
@@ -1335,13 +1350,9 @@
         const mmWidth  = Math.floor(MAZE_W / 6 * 1.32);
         const mmHeight = Math.floor(MAZE_H / 6 * 1.32);
         const mmX = 8, mmY = GAME_H - mmHeight - 8;
-        const psx = (player.x - camX) * zoom + W / 2;
-        const psy = (player.y - camY) * zoom + GAME_H / 2;
         const msx = (mino.x - camX) * zoom + W / 2;
         const msy = (mino.y - camY) * zoom + GAME_H / 2;
-        const playerOverlaps = psx >= mmX - 20 && psx <= mmX + mmWidth && psy >= mmY && psy <= mmY + mmHeight;
-        const minoOverlaps   = msx >= mmX && msx <= mmX + mmWidth && msy >= mmY && msy <= mmY + mmHeight;
-        const overlaps = playerOverlaps || minoOverlaps || (player.x < 400 && player.y > 550);
+        const overlaps = msx >= mmX && msx <= mmX + mmWidth && msy >= mmY && msy <= mmY + mmHeight;
         const target = overlaps ? 0 : 0.9;
         const speed = 0.6 / 0.2;
         minimapAlpha = overlaps
@@ -1448,45 +1459,45 @@
       }
     }
 
-    function drawTrap(x, y) {
-      const r = CELL * 0.28;
-      ctx.save();
-      ctx.shadowColor = 'rgba(180, 0, 0, 0.7)';
-      ctx.shadowBlur = 10;
-      ctx.beginPath();
-      ctx.moveTo(x, y - r); ctx.lineTo(x + r, y);
-      ctx.lineTo(x, y + r); ctx.lineTo(x - r, y);
-      ctx.closePath();
-      ctx.fillStyle = '#1a0505';
-      ctx.fill();
-      ctx.strokeStyle = '#8B0000';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-      ctx.strokeStyle = '#cc2200';
-      ctx.lineWidth = 1.5;
-      ctx.lineCap = 'round';
-      const s = r * 0.45;
-      ctx.beginPath();
-      ctx.moveTo(x - s, y - s); ctx.lineTo(x + s, y + s);
-      ctx.moveTo(x + s, y - s); ctx.lineTo(x - s, y + s);
-      ctx.stroke();
-      ctx.restore();
-    }
+  function drawTrap(x, y) {
+    const r = CELL * 0.28;
+    ctx.save();
+    ctx.shadowColor = 'rgba(180, 0, 0, 0.7)';
+    ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.moveTo(x, y - r); ctx.lineTo(x + r, y);
+    ctx.lineTo(x, y + r); ctx.lineTo(x - r, y);
+    ctx.closePath();
+    ctx.fillStyle = '#1a0505';
+    ctx.fill();
+    ctx.strokeStyle = '#8B0000';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = '#cc2200';
+    ctx.lineWidth = 1.5;
+    ctx.lineCap = 'round';
+    const s = r * 0.45;
+    ctx.beginPath();
+    ctx.moveTo(x - s, y - s); ctx.lineTo(x + s, y + s);
+    ctx.moveTo(x + s, y - s); ctx.lineTo(x - s, y + s);
+    ctx.stroke();
+    ctx.restore();
+  }
 
-    function wrapText(text, maxW, lineH, startY) {
-      const words = text.split(' ');
-      let line = '', y = startY;
-      for (const word of words) {
-        const test = line ? line + ' ' + word : word;
-        if (ctx.measureText(test).width > maxW && line) {
-          ctx.fillText(line, W / 2, y);
-          y += lineH; line = word;
-        } else { line = test; }
-      }
-      if (line) { ctx.fillText(line, W / 2, y); y += lineH; }
-      return y;
+  function wrapText(text, maxW, lineH, startY) {
+    const words = text.split(' ');
+    let line = '', y = startY;
+    for (const word of words) {
+      const test = line ? line + ' ' + word : word;
+      if (ctx.measureText(test).width > maxW && line) {
+        ctx.fillText(line, W / 2, y);
+        y += lineH; line = word;
+      } else { line = test; }
     }
+    if (line) { ctx.fillText(line, W / 2, y); y += lineH; }
+    return y;
+  }
 
     function drawTriviaOverlay() {
       if (!triviaState) return;
@@ -1496,8 +1507,9 @@
       const pad = W * 0.04; // was 0.06
       const maxW = W - pad * 2;
 
-      ctx.fillStyle = 'rgba(10, 20, 38, 0.38)';
-      ctx.fillRect(0, QUEUE_H, W, GAME_H - QUEUE_H);
+    // Light full-screen tint so maze stays visible
+    ctx.fillStyle = 'rgba(10, 20, 38, 0.38)';
+    ctx.fillRect(0, QUEUE_H, W, GAME_H - QUEUE_H);
 
       ctx.textAlign = 'center';
 
@@ -1693,157 +1705,302 @@
       }
     }
 
-    function handleTriviaClick(x, y) {
-      if (!triviaState || triviaState.answered) return;
-      const rects = triviaState.btnRects;
-      if (!rects) return;
-      for (let i = 0; i < 4; i++) {
-        const b = rects[i];
-        if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) {
-          triviaState.attempts++;
-          triviaState.selectedIdx = i;
-          triviaState.answered = true;
-          triviaState.correct = (i === triviaState.question.a);
-          if (triviaState.correct) {
-            traps[triviaState.trapIndex].cleared = true;
-            triviaState.resultTimer = 0.75;
-          } else if (triviaState.attempts < 2) {
-            triviaState.resultTimer = 0.65;
-          } else {
-            triviaState.resultTimer = 1.2;
-          }
-          return;
+  function handleTriviaClick(x, y) {
+    if (!triviaState || triviaState.answered) return;
+    const rects = triviaState.btnRects;
+    if (!rects) return;
+    for (let i = 0; i < 4; i++) {
+      const b = rects[i];
+      if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) {
+        triviaState.attempts++;
+        triviaState.selectedIdx = i;
+        triviaState.answered = true;
+        triviaState.correct = (i === triviaState.question.a);
+        if (triviaState.correct) {
+          traps[triviaState.trapIndex].cleared = true;
+          triviaState.resultTimer = 0.75;
+        } else if (triviaState.attempts < 2) {
+          triviaState.resultTimer = 0.65;
+        } else {
+          triviaState.resultTimer = 1.2;
         }
+        return;
       }
     }
+  }
 
-    function drawStickFigure(x,y,s,color,walkPhase=0){
-      const sw=Math.sin(walkPhase*Math.PI*2)*0.42*s;
-      ctx.strokeStyle=color;ctx.lineWidth=Math.max(1.5,s*0.11);ctx.lineCap='round';
-      ctx.beginPath();ctx.arc(x,y-s*1.85,s*0.52,0,Math.PI*2);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(x,y-s*1.33);ctx.lineTo(x,y+s*0.55);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(x-s*0.72,y-s*0.58);ctx.lineTo(x+s*0.72,y-s*0.58);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(x,y+s*0.55);ctx.lineTo(x-s*0.52+sw,y+s*1.5);ctx.moveTo(x,y+s*0.55);ctx.lineTo(x+s*0.52-sw,y+s*1.5);ctx.stroke();
-    }
-    function drawAriadne(x,y,s,walkPhase){
-      const hx=x, hy=y-s*1.85;
-      ctx.save();
-      ctx.strokeStyle='#6B3A2A'; ctx.lineWidth=Math.max(2,s*0.14); ctx.lineCap='round';
-      ctx.beginPath(); ctx.moveTo(hx-s*0.35,hy-s*0.35);
-      ctx.bezierCurveTo(hx-s*0.85,hy+s*0.2,hx-s*0.95,hy+s*0.9,hx-s*0.65,hy+s*1.55); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(hx-s*0.1,hy-s*0.5);
-      ctx.bezierCurveTo(hx-s*0.3,hy+s*0.4,hx-s*0.5,hy+s*1.0,hx-s*0.4,hy+s*1.65); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(hx+s*0.35,hy-s*0.35);
-      ctx.bezierCurveTo(hx+s*0.75,hy+s*0.1,hx+s*0.7,hy+s*0.8,hx+s*0.5,hy+s*1.5); ctx.stroke();
-      ctx.restore();
-      drawStickFigure(x,y,s,'#FCB075',walkPhase);
-    }
-    function drawSwordOnFigure(x,y,s){
-      const sw=s*0.5,ox=x+s*0.88,oy=y-s*0.45;
-      ctx.strokeStyle='#fca259';ctx.lineWidth=Math.max(1.5,sw*0.12);ctx.lineCap='round';
-      ctx.beginPath();ctx.moveTo(ox,oy-sw*1.5);ctx.lineTo(ox,oy+sw*0.5);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(ox-sw*0.5,oy-sw*0.15);ctx.lineTo(ox+sw*0.5,oy-sw*0.15);ctx.stroke();
-    }
-    function drawMinotaur(x,y,s){
-      ctx.strokeStyle='#c44';ctx.lineWidth=Math.max(1.5,s*0.13);ctx.lineCap='round';
-      ctx.beginPath();ctx.rect(x-s*0.62,y-s*1.1,s*1.24,s*1.35);ctx.stroke();
-      ctx.beginPath();ctx.arc(x,y-s*1.62,s*0.52,0,Math.PI*2);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(x-s*0.42,y-s*2.06);ctx.lineTo(x-s*0.82,y-s*2.68);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(x+s*0.42,y-s*2.06);ctx.lineTo(x+s*0.82,y-s*2.68);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(x-s*0.32,y+s*0.25);ctx.lineTo(x-s*0.32,y+s*1.3);ctx.moveTo(x+s*0.32,y+s*0.25);ctx.lineTo(x+s*0.32,y+s*1.3);ctx.stroke();
-    }
-    function drawSwordItem(x,y,size){
-      ctx.shadowColor='rgba(252,176,117,0.7)';ctx.shadowBlur=10;
-      ctx.strokeStyle='#FCB075';ctx.lineWidth=3;ctx.lineCap='round';
-      ctx.beginPath();ctx.moveTo(x,y-size);ctx.lineTo(x,y+size);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(x-size*0.55,y-size*0.08);ctx.lineTo(x+size*0.55,y-size*0.08);ctx.stroke();
-      ctx.shadowBlur=0;
-    }
+  function drawStickFigure(x,y,s,color,walkPhase=0){
+    const sw=Math.sin(walkPhase*Math.PI*2)*0.42*s;
+    ctx.strokeStyle=color;ctx.lineWidth=Math.max(1.5,s*0.11);ctx.lineCap='round';
+    ctx.beginPath();ctx.arc(x,y-s*1.85,s*0.52,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x,y-s*1.33);ctx.lineTo(x,y+s*0.55);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x-s*0.72,y-s*0.58);ctx.lineTo(x+s*0.72,y-s*0.58);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x,y+s*0.55);ctx.lineTo(x-s*0.52+sw,y+s*1.5);ctx.moveTo(x,y+s*0.55);ctx.lineTo(x+s*0.52-sw,y+s*1.5);ctx.stroke();
+  }
+  function drawAriadne(x,y,s,walkPhase){
+    const hx=x, hy=y-s*1.85;
+    ctx.save();
+    ctx.strokeStyle='#6B3A2A'; ctx.lineWidth=Math.max(2,s*0.14); ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(hx-s*0.35,hy-s*0.35);
+    ctx.bezierCurveTo(hx-s*0.85,hy+s*0.2,hx-s*0.95,hy+s*0.9,hx-s*0.65,hy+s*1.55); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(hx-s*0.1,hy-s*0.5);
+    ctx.bezierCurveTo(hx-s*0.3,hy+s*0.4,hx-s*0.5,hy+s*1.0,hx-s*0.4,hy+s*1.65); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(hx+s*0.35,hy-s*0.35);
+    ctx.bezierCurveTo(hx+s*0.75,hy+s*0.1,hx+s*0.7,hy+s*0.8,hx+s*0.5,hy+s*1.5); ctx.stroke();
+    ctx.restore();
+    drawStickFigure(x,y,s,'#FCB075',walkPhase);
+  }
+  function drawSwordOnFigure(x,y,s){
+    const sw=s*0.5,ox=x+s*0.88,oy=y-s*0.45;
+    ctx.strokeStyle='#fca259';ctx.lineWidth=Math.max(1.5,sw*0.12);ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(ox,oy-sw*1.5);ctx.lineTo(ox,oy+sw*0.5);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(ox-sw*0.5,oy-sw*0.15);ctx.lineTo(ox+sw*0.5,oy-sw*0.15);ctx.stroke();
+  }
+  function drawMinotaur(x,y,s){
+    ctx.strokeStyle='#c44';ctx.lineWidth=Math.max(1.5,s*0.13);ctx.lineCap='round';
+    ctx.beginPath();ctx.rect(x-s*0.62,y-s*1.1,s*1.24,s*1.35);ctx.stroke();
+    ctx.beginPath();ctx.arc(x,y-s*1.62,s*0.52,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x-s*0.42,y-s*2.06);ctx.lineTo(x-s*0.82,y-s*2.68);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x+s*0.42,y-s*2.06);ctx.lineTo(x+s*0.82,y-s*2.68);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x-s*0.32,y+s*0.25);ctx.lineTo(x-s*0.32,y+s*1.3);ctx.moveTo(x+s*0.32,y+s*0.25);ctx.lineTo(x+s+0.32,y+s*1.3);ctx.stroke();
+  }
+  function drawSwordItem(x,y,size){
+    ctx.shadowColor='rgba(252,176,117,0.7)';ctx.shadowBlur=10;
+    ctx.strokeStyle='#FCB075';ctx.lineWidth=3;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(x,y-size);ctx.lineTo(x,y+size);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x-size*0.55,y-size*0.08);ctx.lineTo(x+size*0.55,y-size*0.08);ctx.stroke();
+    ctx.shadowBlur=0;
+  }
 
-    function drawThreadItem(x, y) {
-      const r = CELL * 0.22;
-      ctx.save();
-      ctx.shadowColor = 'rgba(247, 224, 15, 0.9)';
-      ctx.shadowBlur = 14;
-      ctx.strokeStyle = 'rgb(247, 224, 15)';
-      ctx.lineWidth = 2;
-      ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.stroke();
-      ctx.beginPath(); ctx.arc(x, y, r*0.5, 0, Math.PI*2); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(x-r, y); ctx.lineTo(x+r, y); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(x, y-r); ctx.lineTo(x, y+r); ctx.stroke();
-      ctx.restore();
-    }
+  function drawThreadItem(x, y) {
+    const r = CELL * 0.22;
+    ctx.save();
+    ctx.shadowColor = 'rgba(247, 224, 15, 0.9)';
+    ctx.shadowBlur = 14;
+    ctx.strokeStyle = 'rgb(247, 224, 15)';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, y, r*0.5, 0, Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x-r, y); ctx.lineTo(x+r, y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x, y-r); ctx.lineTo(x, y+r); ctx.stroke();
+    ctx.restore();
+  }
 
-    function drawMinimap() {
+    function drawMinimap(camY) {
       const mmWidth  = Math.floor(MAZE_W / 6 * 1.32);
       const mmHeight = Math.floor(MAZE_H / 6 * 1.32);
-      const mmX = 8;
-      const mmY = GAME_H - mmHeight - 8;
+
+      const playerScreenY = (player.y - camY) * zoom + GAME_H / 2;
+      if (playerScreenY > GAME_H * 0.75) {
+        minimapAtBottom = false;
+      } else if (playerScreenY < GAME_H * 0.35) {
+        minimapAtBottom = true;
+      }
+
+      let mmX, mmY;
+      if (minimapAtBottom) {
+        mmX = 8;
+        mmY = GAME_H - mmHeight - 8;
+      } else {
+        // Move minimap below the quit (X) button
+        const btnSize = Math.floor(CELL * 1.1);
+        mmX = 16;
+        mmY = QUEUE_H + 16 + btnSize + 8;
+      }
       const scale = mmWidth / MAZE_W;
 
-      ctx.save();
-      ctx.globalAlpha = minimapAlpha;
+    ctx.save();
+    ctx.globalAlpha = minimapAlpha;
 
-      ctx.fillStyle = '#14253D';
-      ctx.fillRect(mmX, mmY, mmWidth, mmHeight);
+    ctx.fillStyle = '#14253D';
+    ctx.fillRect(mmX, mmY, mmWidth, mmHeight);
 
-      ctx.strokeStyle = '#FFFFFF';
-      ctx.lineWidth = 0.5;
-      ctx.lineCap = 'square';
-      ctx.beginPath();
-      for (let r = 0; r < ROWS; r++) {
-        for (let c = 0; c < COLS; c++) {
-          const x = mmX + c * CELL * scale;
-          const y = mmY + r * CELL * scale;
-          const cs = CELL * scale;
-          const cell = maze[idx(r, c)];
-          if (!(cell & 1)) { ctx.moveTo(x, y);      ctx.lineTo(x+cs, y);    }
-          if (!(cell & 2)) { ctx.moveTo(x+cs, y);   ctx.lineTo(x+cs, y+cs); }
-          if (!(cell & 4)) { ctx.moveTo(x, y+cs);   ctx.lineTo(x+cs, y+cs); }
-          if (!(cell & 8)) { ctx.moveTo(x, y);      ctx.lineTo(x, y+cs);    }
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 0.5;
+    ctx.lineCap = 'square';
+    ctx.beginPath();
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const x = mmX + c * CELL * scale;
+        const y = mmY + r * CELL * scale;
+        const cs = CELL * scale;
+        const cell = maze[idx(r, c)];
+        if (!(cell & 1)) { ctx.moveTo(x, y);      ctx.lineTo(x+cs, y);    }
+        if (!(cell & 2)) { ctx.moveTo(x+cs, y);   ctx.lineTo(x+cs, y+cs); }
+        if (!(cell & 4)) { ctx.moveTo(x, y+cs);   ctx.lineTo(x+cs, y+cs); }
+        if (!(cell & 8)) { ctx.moveTo(x, y);      ctx.lineTo(x, y+cs);    }
+      }
+    }
+    ctx.stroke();
+
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(mmX, mmY, mmWidth, mmHeight);
+
+    const sqSize = Math.max(2, Math.floor(CELL * scale * 0.6));
+    const msx = mmX + mino.x * scale - sqSize / 2;
+    const msy = mmY + mino.y * scale - sqSize / 2;
+    ctx.fillStyle = '#cc4444';
+    ctx.fillRect(msx, msy, sqSize, sqSize);
+
+    const psx = mmX + player.x * scale - sqSize / 2;
+    const psy = mmY + player.y * scale - sqSize / 2;
+    ctx.fillStyle = '#FFE600';
+    ctx.fillRect(psx, psy, sqSize, sqSize);
+
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(mmX, mmY, mmWidth, mmHeight);
+
+    ctx.restore();
+  }
+
+  function drawMaze(camX,camY){
+    const r0=Math.max(0,Math.floor((camY-GAME_H/2)/CELL)-1);
+    const r1=Math.min(ROWS-1,Math.ceil((camY+GAME_H/2)/CELL)+1);
+    const c0=Math.max(0,Math.floor((camX-W/2)/CELL)-1);
+    const c1=Math.min(COLS-1,Math.ceil((camX+W/2)/CELL)+1);
+    ctx.strokeStyle='#556B85';ctx.lineWidth=2;ctx.lineCap='square';
+    ctx.beginPath();
+    for(let r=r0;r<=r1;r++) for(let c=c0;c<=c1;c++){
+      const x=c*CELL,y=r*CELL,cell=maze[idx(r,c)];
+      if(!(cell&1)){ctx.moveTo(x,y);ctx.lineTo(x+CELL,y);}
+      if(!(cell&2)){ctx.moveTo(x+CELL,y);ctx.lineTo(x+CELL,y+CELL);}
+      if(!(cell&4)){ctx.moveTo(x,y+CELL);ctx.lineTo(x+CELL,y+CELL);}
+      if(!(cell&8)){ctx.moveTo(x,y);ctx.lineTo(x,y+CELL);}
+    }
+    ctx.stroke();
+    ctx.strokeStyle='#1C355E';ctx.lineWidth=3;ctx.strokeRect(0,0,MAZE_W,MAZE_H);
+  }
+
+    function drawOrnateGate(x, y, w, h, orient, isClosed) {
+      const gradient = ctx.createLinearGradient(x, y, x + (orient==='horizontal' ? w : 0), y + (orient==='vertical' ? h : 0));
+      gradient.addColorStop(0, '#4A2511');
+      gradient.addColorStop(0.5, '#6B3E23');
+      gradient.addColorStop(1, '#3D1F0F');
+      ctx.fillStyle = gradient;
+      const postW = w * 0.15, postH = h * 0.15;
+      if (isClosed) {
+        if (orient === 'horizontal') {
+          ctx.fillRect(x, y, w, h);
+          ctx.strokeStyle = '#8B5A2B';
+          ctx.lineWidth = 1.5;
+          for (let i = 0; i < 6; i++) {
+            ctx.beginPath();
+            ctx.moveTo(x + (w / 6) * i, y);
+            ctx.lineTo(x + (w / 6) * i, y + h);
+            ctx.stroke();
+          }
+          ctx.fillStyle = '#D4AF37';
+          for (let i = 0; i < 5; i++) {
+            const ox = x + (w / 5) * (i + 0.5);
+            ctx.beginPath();
+            ctx.arc(ox, y + h / 2, h * 0.2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#A68A39';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+          }
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+          ctx.fillRect(x, y + h * 0.7, w, h * 0.3);
+        } else {
+          ctx.fillRect(x, y, w, h);
+          ctx.strokeStyle = '#8B5A2B';
+          ctx.lineWidth = 1.5;
+          for (let i = 0; i < 6; i++) {
+            ctx.beginPath();
+            ctx.moveTo(x, y + (h / 6) * i);
+            ctx.lineTo(x + w, y + (h / 6) * i);
+            ctx.stroke();
+          }
+          ctx.fillStyle = '#D4AF37';
+          for (let i = 0; i < 5; i++) {
+            const oy = y + (h / 5) * (i + 0.5);
+            ctx.beginPath();
+            ctx.arc(x + w / 2, oy, w * 0.2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#A68A39';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+          }
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+          ctx.fillRect(x + w * 0.7, y, w * 0.3, h);
+        }
+      } else {
+        if (orient === 'horizontal') {
+          const post1X = x, post2X = x + w - postW;
+          ctx.fillRect(post1X, y, postW, h);
+          ctx.fillRect(post2X, y, postW, h);
+          ctx.strokeStyle = '#8B5A2B';
+          ctx.lineWidth = 1;
+          for (let p of [post1X, post2X]) {
+            for (let i = 0; i < 3; i++) {
+              ctx.beginPath();
+              ctx.moveTo(p, y + (h / 3) * (i + 1));
+              ctx.lineTo(p + postW, y + (h / 3) * (i + 1));
+              ctx.stroke();
+            }
+          }
+          ctx.fillStyle = '#D4AF37';
+          ctx.beginPath();
+          ctx.moveTo(post1X - postW * 0.3, y - postW * 0.2);
+          ctx.lineTo(post1X + postW * 1.3, y - postW * 0.2);
+          ctx.lineTo(post1X + postW * 0.9, y);
+          ctx.lineTo(post1X + postW * 0.1, y);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.moveTo(post2X - postW * 0.3, y - postW * 0.2);
+          ctx.lineTo(post2X + postW * 1.3, y - postW * 0.2);
+          ctx.lineTo(post2X + postW * 0.9, y);
+          ctx.lineTo(post2X + postW * 0.1, y);
+          ctx.fill();
+          ctx.shadowColor = 'rgba(212, 175, 55, 0.6)';
+          ctx.shadowBlur = 8;
+          ctx.strokeStyle = '#FFD700';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(x + w * 0.15, y + h * 0.3);
+          ctx.lineTo(x + w * 0.85, y + h * 0.3);
+          ctx.stroke();
+        } else {
+          const post1Y = y, post2Y = y + h - postH;
+          ctx.fillRect(x, post1Y, w, postH);
+          ctx.fillRect(x, post2Y, w, postH);
+          ctx.strokeStyle = '#8B5A2B';
+          ctx.lineWidth = 1;
+          for (let p of [post1Y, post2Y]) {
+            for (let i = 0; i < 3; i++) {
+              ctx.beginPath();
+              ctx.moveTo(x + (w / 3) * (i + 1), p);
+              ctx.lineTo(x + (w / 3) * (i + 1), p + postH);
+              ctx.stroke();
+            }
+          }
+          ctx.fillStyle = '#D4AF37';
+          ctx.beginPath();
+          ctx.moveTo(x - postH * 0.2, post1Y - postH * 0.3);
+          ctx.lineTo(x - postH * 0.2, post1Y + postH * 1.3);
+          ctx.lineTo(x, post1Y + postH * 0.9);
+          ctx.lineTo(x, post1Y + postH * 0.1);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.moveTo(x - postH * 0.2, post2Y - postH * 0.3);
+          ctx.lineTo(x - postH * 0.2, post2Y + postH * 1.3);
+          ctx.lineTo(x, post2Y + postH * 0.9);
+          ctx.lineTo(x, post2Y + postH * 0.1);
+          ctx.fill();
+          ctx.shadowColor = 'rgba(212, 175, 55, 0.6)';
+          ctx.shadowBlur = 8;
+          ctx.strokeStyle = '#FFD700';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(x + w * 0.3, y + h * 0.15);
+          ctx.lineTo(x + w * 0.3, y + h * 0.85);
+          ctx.stroke();
         }
       }
-      ctx.stroke();
-
-      ctx.strokeStyle = '#FFFFFF';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(mmX, mmY, mmWidth, mmHeight);
-
-      const sqSize = Math.max(2, Math.floor(CELL * scale * 0.6));
-      const msx = mmX + mino.x * scale - sqSize / 2;
-      const msy = mmY + mino.y * scale - sqSize / 2;
-      ctx.fillStyle = '#cc4444';
-      ctx.fillRect(msx, msy, sqSize, sqSize);
-
-      const psx = mmX + player.x * scale - sqSize / 2;
-      const psy = mmY + player.y * scale - sqSize / 2;
-      ctx.fillStyle = '#FFE600';
-      ctx.fillRect(psx, psy, sqSize, sqSize);
-
-      ctx.strokeStyle = '#000';
-      ctx.lineWidth = 3;
-      ctx.strokeRect(mmX, mmY, mmWidth, mmHeight);
-
-      ctx.restore();
-    }
-
-    function drawMaze(camX,camY){
-      const r0=Math.max(0,Math.floor((camY-GAME_H/2)/CELL)-1);
-      const r1=Math.min(ROWS-1,Math.ceil((camY+GAME_H/2)/CELL)+1);
-      const c0=Math.max(0,Math.floor((camX-W/2)/CELL)-1);
-      const c1=Math.min(COLS-1,Math.ceil((camX+W/2)/CELL)+1);
-      ctx.strokeStyle='#556B85';ctx.lineWidth=2;ctx.lineCap='square';
-      ctx.beginPath();
-      for(let r=r0;r<=r1;r++) for(let c=c0;c<=c1;c++){
-        const x=c*CELL,y=r*CELL,cell=maze[idx(r,c)];
-        if(!(cell&1)){ctx.moveTo(x,y);ctx.lineTo(x+CELL,y);}
-        if(!(cell&2)){ctx.moveTo(x+CELL,y);ctx.lineTo(x+CELL,y+CELL);}
-        if(!(cell&4)){ctx.moveTo(x,y+CELL);ctx.lineTo(x+CELL,y+CELL);}
-        if(!(cell&8)){ctx.moveTo(x,y);ctx.lineTo(x,y+CELL);}
-      }
-      ctx.stroke();
-      ctx.strokeStyle='#1C355E';ctx.lineWidth=3;ctx.strokeRect(0,0,MAZE_W,MAZE_H);
+      ctx.shadowColor = 'transparent';
     }
 
     // function drawControls(){
@@ -1922,6 +2079,39 @@
       const btnSize = Math.floor(CELL * 1.45);
       const btnX = W - btnSize - 12;
       const btnY = QUEUE_H + 20;
+    const JOY_RADIUS = 55;
+
+    function drawVirtualJoystick(){
+      if(!dragInput.active) return;
+
+      const dx = dragInput.curX - dragInput.startX;
+      const dy = dragInput.curY - dragInput.startY;
+      const dist = Math.hypot(dx, dy);
+      const clamped = Math.min(dist, JOY_RADIUS);
+      const angle = Math.atan2(dy, dx);
+      const knobX = dist > 0 ? dragInput.startX + Math.cos(angle) * clamped : dragInput.startX;
+      const knobY = dist > 0 ? dragInput.startY + Math.sin(angle) * clamped : dragInput.startY;
+
+      ctx.save();
+      ctx.fillStyle = 'rgba(213,230,237,0.18)';
+      ctx.strokeStyle = 'rgba(213,230,237,0.5)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(dragInput.startX, dragInput.startY, JOY_RADIUS, 0, Math.PI*2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(252,176,117,0.85)';
+      ctx.beginPath();
+      ctx.arc(knobX, knobY, JOY_RADIUS*0.45, 0, Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawFloatingPauseButton() {
+      const btnSize = Math.floor(CELL * 1.1);
+      const btnX = W - btnSize - 16;
+      const btnY = QUEUE_H + 16;
 
       ctx.save();
       ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
@@ -1985,29 +2175,29 @@
       const cy = btnY + btnSize / 2;
       const s = btnSize * 0.30;
 
-      // Arrow stem
-      ctx.beginPath();
-      ctx.moveTo(cx, cy + s * 0.7);
-      ctx.lineTo(cx, cy - s * 0.9);
-      ctx.stroke();
+    // Arrow stem (starts inside box, rises above it)
+    ctx.beginPath();
+    ctx.moveTo(cx, cy + s * 0.7);
+    ctx.lineTo(cx, cy - s * 0.9);
+    ctx.stroke();
 
-      // Arrow head
-      ctx.beginPath();
-      ctx.moveTo(cx - s * 0.6, cy - s * 0.3);
-      ctx.lineTo(cx, cy - s * 1.1);
-      ctx.lineTo(cx + s * 0.6, cy - s * 0.3);
-      ctx.stroke();
+    // Arrow head (tip clearly above box top)
+    ctx.beginPath();
+    ctx.moveTo(cx - s * 0.6, cy - s * 0.3);
+    ctx.lineTo(cx, cy - s * 1.1);
+    ctx.lineTo(cx + s * 0.6, cy - s * 0.3);
+    ctx.stroke();
 
-      // Box
-      ctx.beginPath();
-      ctx.moveTo(cx - s * 0.8, cy + s * 0.1);
-      ctx.lineTo(cx - s * 0.8, cy + s * 1.3);
-      ctx.lineTo(cx + s * 0.8, cy + s * 1.3);
-      ctx.lineTo(cx + s * 0.8, cy + s * 0.1);
-      ctx.stroke();
+    // Box (U-shape open at top where arrow exits)
+    ctx.beginPath();
+    ctx.moveTo(cx - s * 0.8, cy + s * 0.1);
+    ctx.lineTo(cx - s * 0.8, cy + s * 1.3);
+    ctx.lineTo(cx + s * 0.8, cy + s * 1.3);
+    ctx.lineTo(cx + s * 0.8, cy + s * 0.1);
+    ctx.stroke();
 
-      ctx.restore();
-    }
+    ctx.restore();
+  }
 
     function drawFloatingQuitButton() {
       const btnSize = Math.floor(CELL * 1.45);
@@ -2054,47 +2244,39 @@
       const camYMin = gameState === 'INTRO' ? halfH : (GAME_H/2 - QUEUE_H) / zoom;
       const camY = Math.max(camYMin, Math.min(MAZE_H - halfH, player.y));
 
-      ctx.fillStyle='#14253D';ctx.fillRect(0,0,W,GAME_H);
+    ctx.fillStyle='#14253D';ctx.fillRect(0,0,W,GAME_H);
 
-      ctx.save();
-      ctx.beginPath();ctx.rect(0,0,W,GAME_H);ctx.clip();
-      ctx.translate(W/2, GAME_H/2);
-      ctx.scale(zoom, zoom);
-      ctx.translate(-camX, -camY);
+    ctx.save();
+    ctx.beginPath();ctx.rect(0,0,W,GAME_H);ctx.clip();
+    ctx.translate(W/2, GAME_H/2);
+    ctx.scale(zoom, zoom);
+    ctx.translate(-camX, -camY);
 
-      drawMaze(camX,camY);
+    drawMaze(camX,camY);
 
-      {
-        const pathSet = introAnim ? new Set(introAnim.playerPath) : null;
-        for (const t of traps) {
-          if (t.cleared) continue;
-          if (pathSet) {
-            const {r, c} = worldToCell(t.x, t.y);
-            if (pathSet.has(idx(r, c))) continue;
-          }
-          drawTrap(t.x, t.y);
+    {
+      const pathSet = introAnim ? new Set(introAnim.playerPath) : null;
+      for (const t of traps) {
+        if (t.cleared) continue;
+        if (pathSet) {
+          const {r, c} = worldToCell(t.x, t.y);
+          if (pathSet.has(idx(r, c))) continue;
         }
+        drawTrap(t.x, t.y);
       }
+    }
 
       {
-        ctx.fillStyle='#5C3317';
         const {side:ds,r0:dr,c0:dc}=spawnRoom;
         const dx=dc*CELL, dy=dr*CELL;
-        const off=CELL*0.18, thick=CELL*0.3, post=CELL*0.14;
+        const off=CELL*0.18;
         const doorOpen=minoKilled||ariadnePhase==='escape';
-        if(ds==='top'){
-          if(!doorOpen){ ctx.fillRect(dx,-off,2*CELL,thick); }
-          else { ctx.fillRect(dx,-off,post,thick); ctx.fillRect(dx+2*CELL-post,-off,post,thick); }
-        } else if(ds==='bottom'){
-          if(!doorOpen){ ctx.fillRect(dx,MAZE_H+off-thick,2*CELL,thick); }
-          else { ctx.fillRect(dx,MAZE_H+off-thick,post,thick); ctx.fillRect(dx+2*CELL-post,MAZE_H+off-thick,post,thick); }
-        } else if(ds==='left'){
-          if(!doorOpen){ ctx.fillRect(-off,dy,thick,2*CELL); }
-          else { ctx.fillRect(-off,dy,thick,post); ctx.fillRect(-off,dy+2*CELL-post,thick,post); }
-        } else {
-          if(!doorOpen){ ctx.fillRect(MAZE_W+off-thick,dy,thick,2*CELL); }
-          else { ctx.fillRect(MAZE_W+off-thick,dy,thick,post); ctx.fillRect(MAZE_W+off-thick,dy+2*CELL-post,thick,post); }
-        }
+        ctx.save();
+        if(ds==='top')         drawOrnateGate(dx, -off, 2*CELL, CELL*0.3, 'horizontal', !doorOpen);
+        else if(ds==='bottom') drawOrnateGate(dx, MAZE_H+off-CELL*0.3, 2*CELL, CELL*0.3, 'horizontal', !doorOpen);
+        else if(ds==='left')   drawOrnateGate(-off, dy, CELL*0.3, 2*CELL, 'vertical', !doorOpen);
+        else                   drawOrnateGate(MAZE_W+off-CELL*0.3, dy, CELL*0.3, 2*CELL, 'vertical', !doorOpen);
+        ctx.restore();
       }
 
       if(!swordCollected) drawSwordItem(SWORD_X,SWORD_Y,CELL*0.30);
@@ -2159,7 +2341,7 @@
                       : 0
       );
 
-      ctx.restore();
+    ctx.restore();
 
       if(theseusTimer>0){
         const a=Math.min(1,theseusTimer);
@@ -2208,42 +2390,41 @@
         ctx.fillText('Ariadne has come to save you!',W/2,by+bh*0.74);
       }
 
-      if (CTRL_H > 0) {
-        ctx.fillStyle='#D5E6ED';
-        ctx.fillRect(0,GAME_H,W,CTRL_H);
-      }
+    ctx.fillStyle='#D5E6ED';ctx.fillRect(0,GAME_H,W,CTRL_H);
+    if(gameState==='PLAYING') drawControls();
+    if (gameState !== 'INTRO') drawControls();
 
       if(gameState==='TRIVIA') drawTriviaOverlay();
       if(gameState==='INTRO') drawIntroOverlay();
 
-      // Black overlay for intro fade-out and gameplay fade-in
-      const introFade = introAnim ? (introAnim.fadeAlpha || 0) : 0;
-      const totalFade = Math.max(introFade, screenFadeAlpha);
-      if (totalFade > 0) {
-        ctx.fillStyle = `rgba(0,0,0,${totalFade})`;
-        ctx.fillRect(0, 0, W, H);
-      }
-
-      drawQueueBar();
-
-      if (gameState === 'PLAYING') {
-        if (player.isTheseus && !minoKilled) drawMinimap();
-        drawFloatingPauseButton();
-        drawFloatingShareButton();
-        drawFloatingQuitButton();
-      }
+    // Black overlay for intro fade-out and gameplay fade-in
+    const introFade = introAnim ? (introAnim.fadeAlpha || 0) : 0;
+    const totalFade = Math.max(introFade, screenFadeAlpha);
+    if (totalFade > 0) {
+      ctx.fillStyle = `rgba(0,0,0,${totalFade})`;
+      ctx.fillRect(0, 0, W, H);
     }
 
-    function loop(ts){
-      const dt=Math.min((ts-lastTime)/1000,0.05); lastTime=ts;
-      if(gameState==='PLAYING' && queuePos>0){
-        queueTimer-=dt;
-        if(queueTimer<=0){ queuePos--; queueTimer=15+Math.random()*25; if(queuePos===1)triggerAriadne(); }
-      }
-      update(dt); render(); console.log(player.x.toFixed(1), player.y.toFixed(1)); requestAnimationFrame(loop);
+    drawQueueBar();
+
+    if (gameState === 'PLAYING') {
+      if (player.isTheseus && !minoKilled) drawMinimap();
+      drawFloatingPauseButton();
+      drawFloatingShareButton();
+      drawFloatingQuitButton();
     }
-    requestAnimationFrame(ts=>{lastTime=ts;requestAnimationFrame(loop);});
-  </script>
+  }
+
+  function loop(ts){
+    const dt=Math.min((ts-lastTime)/1000,0.05); lastTime=ts;
+    if(gameState==='PLAYING' && queuePos>0){
+      queueTimer-=dt;
+      if(queueTimer<=0){ queuePos--; queueTimer=15+Math.random()*25; if(queuePos===1)triggerAriadne(); }
+    }
+    update(dt); render(); console.log(player.x.toFixed(1), player.y.toFixed(1)); requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(ts=>{lastTime=ts;requestAnimationFrame(loop);});
+</script>
 </div>
 </body>
 </html>
